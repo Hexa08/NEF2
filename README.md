@@ -31,12 +31,11 @@ use PyTorch, TensorFlow, CuPy, JAX, or the Hugging Face `datasets` package.
 pip install nef2
 ```
 
-From source:
+Browse the source:
 
 ```bash
 git clone https://github.com/Hexa08/NEF2.git
 cd NEF2
-pip install .
 ```
 
 ## Quick Start

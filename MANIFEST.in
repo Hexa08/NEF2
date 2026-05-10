@@ -1,0 +1,6 @@
+exclude model.nef
+prune .pytest_cache
+prune dist
+prune build
+prune *.egg-info
+global-exclude __pycache__ *.py[cod]

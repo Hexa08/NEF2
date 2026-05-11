@@ -15,7 +15,7 @@ from .byte_tokenizer import ByteTokenizer
 from .serialization import load_model, save_model
 from . import gpu
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 __all__ = [
     "Tensor",

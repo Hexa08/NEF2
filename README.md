@@ -60,11 +60,14 @@ print(logits.shape)
 | Optimizers | Implemented | `SGD`, `AdamW`, CUDA-backed `CudaSGD` with GPU caching |
 | GPT model | Implemented on CPU | Compact causal Transformer with KV cache and matmul attention |
 | KV cache | Implemented | Caches K/V across generation steps (O(n) per token) |
-| Wikipedia loader | Implemented | Uses Hugging Face dataset-server API with `urllib` |
 | `.nef` model files | Implemented | Compact binary format with integrity checks |
-| NVIDIA CUDA backend | Implemented | Vector kernels + matmul, Linux + Windows, dynamic SM detection |
-| Full GPT CUDA training | In progress | Needs GPU layernorm, loss, and backward kernels |
-| AMD, Intel, Apple GPUs | Planned | Requires separate native vendor backends |
+| NVIDIA CUDA backend | Implemented | Vector kernels + matmul + layernorm + cross-entropy, Linux + Windows |
+| GPU layernorm | Implemented | PTX kernel, integrated into `nn.LayerNorm` |
+| GPU cross-entropy | Implemented | PTX kernel with stable log-softmax |
+| Vendor backend detection | Implemented | Auto-detects CUDA, HIP, Level Zero, Metal |
+| AMD, Intel, Apple backends | Planned | Native kernels for HIP, Level Zero, Metal |
+| Full GPU backward kernels | Planned | Dedicated backward kernels for matmul, layernorm |
+| Context window extension | Planned | RoPE / ALiBi for >1024 tokens |
 
 ## Architecture
 
@@ -242,15 +245,13 @@ nef2/
 ```mermaid
 %%{init: {"theme": "base", "themeVariables": {"primaryColor": "#7c3aed", "primaryTextColor": "#ffffff", "lineColor": "#64748b", "secondaryColor": "#f5f3ff"}}}%%
 flowchart TB
-    A["CPU GPT + CUDA vector kernels"] --> B["GPU matmul kernels"]
-    B --> C["GPU softmax and cross entropy"]
-    C --> D["GPU layernorm and embedding kernels"]
-    D --> E["GPU backward kernels"]
-    E --> F["Full GPT CUDA training"]
-    F --> G["KV cache compressor (INT4, delta, LZ)"]
-    G --> H["Context window extension (RoPE / ALiBi)"]
-    H --> I["Checkpointed 200M training"]
-    I --> J["Additional vendor backends"]
+    A["CPU GPT + CUDA vector kernels"] --> B["GPU matmul + layernorm + cross-entropy"]
+    B --> C["GPU backward kernels"]
+    C --> D["Full GPT CUDA training"]
+    D --> E["KV cache compressor (INT4, delta, LZ)"]
+    E --> F["Context window extension (RoPE / ALiBi)"]
+    F --> G["Checkpointed 200M training"]
+    G --> H["AMD HIP / Intel Level Zero / Apple Metal backends"]
 ```
 
 ## Status

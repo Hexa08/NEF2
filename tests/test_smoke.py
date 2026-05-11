@@ -176,6 +176,16 @@ def test_gpu_import():
         print(f"SKIP: gpu import failed ({e})")
 
 
+def test_gpu_backends():
+    try:
+        from nef2 import gpu
+        backends = gpu.available_backends()
+        pref = gpu.preferred_backend()
+        print(f"PASS: gpu backends detected = {backends}, preferred = {pref}")
+    except Exception as e:
+        print(f"SKIP: gpu backend detection failed ({e})")
+
+
 if __name__ == "__main__":
     test_tensor_copy_shape()
     test_gelu()
@@ -190,4 +200,5 @@ if __name__ == "__main__":
     test_gpt_kv_cache_reuse()
     test_serialization_roundtrip()
     test_gpu_import()
+    test_gpu_backends()
     print("\nAll smoke tests passed.")

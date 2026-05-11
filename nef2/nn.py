@@ -168,10 +168,31 @@ class LayerNorm(Module):
         self.eps = eps
 
     def forward(self, x):
+        # Try GPU layernorm for large tensors
+        gpu_out = _gpu_layernorm(x, self.weight, self.bias, self.eps)
+        if gpu_out is not None:
+            return gpu_out
         mean = x.mean(axis=-1, keepdims=True)
         centered = x - mean
         var = (centered * centered).mean(axis=-1, keepdims=True)
         return centered / ((var + self.eps) ** 0.5) * self.weight + self.bias
+
+
+def _gpu_layernorm(x, weight, bias, eps):
+    try:
+        from . import gpu
+        if not gpu.cuda_available():
+            return None
+        if x.size < 256:
+            return None
+        if len(x.shape) < 1:
+            return None
+        x_gpu = gpu.CudaTensor.from_flat(x.data, x.shape)
+        out_gpu = x_gpu.layernorm(weight.data, bias.data, eps)
+        out_data = out_gpu.tolist()
+        return Tensor(out_data, x.requires_grad, (x, weight, bias), "layernorm")
+    except Exception:
+        return None
 
 
 class Dropout(Module):

@@ -8,3 +8,7 @@ build/
 venv/
 env/
 .env
+oldcontext.md
+oldcontext.md/
+tests/
+test_*.py

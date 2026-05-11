@@ -1,5 +1,6 @@
 import ctypes
 import os
+import platform
 from contextlib import contextmanager
 
 
@@ -113,6 +114,90 @@ done_sgd:
 done_fill:
     ret;
 }
+
+.visible .entry matmul(.param .u64 a, .param .u64 b, .param .u64 out, .param .u32 batch, .param .u32 m, .param .u32 k, .param .u32 n, .param .u32 b_batched)
+{
+    .reg .pred %p;
+    .reg .b32 %r<21>;
+    .reg .b64 %rd<6>;
+    .reg .f32 %f<4>;
+
+    ld.param.u64 %rd1, [a];
+    ld.param.u64 %rd2, [b];
+    ld.param.u64 %rd3, [out];
+    ld.param.u32 %r4, [batch];
+    ld.param.u32 %r5, [m];
+    ld.param.u32 %r6, [k];
+    ld.param.u32 %r7, [n];
+    ld.param.u32 %r8, [b_batched];
+
+    mov.u32 %r1, %tid.x;
+    mov.u32 %r2, %ctaid.x;
+    mov.u32 %r3, %ntid.x;
+    mad.lo.s32 %r9, %r2, %r3, %r1;
+
+    mul.lo.s32 %r10, %r4, %r5;
+    mul.lo.s32 %r10, %r10, %r7;
+    setp.ge.u32 %p, %r9, %r10;
+    @%p bra done_matmul;
+
+    mul.lo.s32 %r11, %r5, %r7;
+
+    div.u32 %r12, %r9, %r11;
+    rem.u32 %r13, %r9, %r11;
+
+    div.u32 %r14, %r13, %r7;
+    rem.u32 %r15, %r13, %r7;
+
+    mul.lo.s32 %r16, %r12, %r5;
+    mul.lo.s32 %r16, %r16, %r6;
+
+    setp.eq.u32 %p, %r8, 0;
+    @%p bra b_unbatched;
+    mul.lo.s32 %r17, %r12, %r6;
+    mul.lo.s32 %r17, %r17, %r7;
+    bra b_offset_done;
+b_unbatched:
+    mov.u32 %r17, 0;
+b_offset_done:
+
+    mul.lo.s32 %r18, %r12, %r11;
+
+    mov.f32 %f1, 0f00000000;
+    mov.u32 %r19, 0;
+
+loop_kk:
+    setp.ge.u32 %p, %r19, %r6;
+    @%p bra end_loop_kk;
+
+    mul.lo.s32 %r20, %r14, %r6;
+    add.s32 %r20, %r20, %r19;
+    add.s32 %r20, %r20, %r16;
+    mul.wide.u32 %rd4, %r20, 4;
+    add.s64 %rd5, %rd1, %rd4;
+    ld.global.f32 %f2, [%rd5];
+
+    mul.lo.s32 %r20, %r19, %r7;
+    add.s32 %r20, %r20, %r15;
+    add.s32 %r20, %r20, %r17;
+    mul.wide.u32 %rd4, %r20, 4;
+    add.s64 %rd5, %rd2, %rd4;
+    ld.global.f32 %f3, [%rd5];
+
+    fma.rn.f32 %f1, %f2, %f3, %f1;
+
+    add.u32 %r19, %r19, 1;
+    bra loop_kk;
+
+end_loop_kk:
+    add.s32 %r20, %r18, %r13;
+    mul.wide.u32 %rd4, %r20, 4;
+    add.s64 %rd5, %rd3, %rd4;
+    st.global.f32 [%rd5], %f1;
+
+done_matmul:
+    ret;
+}
 """
 
 
@@ -129,10 +214,30 @@ class UnsupportedGpuBackend(CudaError):
     pass
 
 
+def _load_cuda_lib():
+    system = platform.system()
+    if system == "Windows":
+        return ctypes.WinDLL("nvcuda.dll")
+    elif system == "Linux":
+        return ctypes.CDLL("libcuda.so.1")
+    elif system == "Darwin":
+        raise CudaError("macOS does not support CUDA. Use Metal backend (planned).")
+    else:
+        raise CudaError("Unsupported platform: %s" % system)
+
+
+def _get_sm_version(cuda, device):
+    major = ctypes.c_int()
+    minor = ctypes.c_int()
+    _check(cuda.cuDeviceGetAttribute(ctypes.byref(major), 75, device), "cuDeviceGetAttribute(major)")
+    _check(cuda.cuDeviceGetAttribute(ctypes.byref(minor), 76, device), "cuDeviceGetAttribute(minor)")
+    return major.value, minor.value
+
+
 class _CudaRuntime:
     def __init__(self, index=0):
         self.index = index
-        self.cuda = ctypes.WinDLL("nvcuda.dll")
+        self.cuda = _load_cuda_lib()
         self.count = ctypes.c_int()
         self.device = ctypes.c_int()
         self.context = ctypes.c_void_p()
@@ -143,9 +248,19 @@ class _CudaRuntime:
             raise CudaError("CUDA device index %s is out of range" % index)
         _check(self.cuda.cuDeviceGet(ctypes.byref(self.device), index), "cuDeviceGet")
         _check(self.cuda.cuCtxCreate_v2(ctypes.byref(self.context), 0, self.device), "cuCtxCreate")
-        ptx = ctypes.create_string_buffer(_PTX.encode("utf-8"))
+        major, minor = _get_sm_version(self.cuda, self.device)
+        target = "sm_%d%d" % (major, minor)
+        ptx = ctypes.create_string_buffer(_PTX.replace(".target sm_52", ".target " + target).encode("utf-8"))
         _check(self.cuda.cuModuleLoadData(ctypes.byref(self.module), ptx), "cuModuleLoadData")
         self.functions = {}
+
+    def __del__(self):
+        try:
+            if self.context:
+                self.cuda.cuCtxDestroy_v2(self.context)
+                self.context = None
+        except Exception:
+            pass
 
     def name(self):
         buf = ctypes.create_string_buffer(128)
@@ -221,8 +336,6 @@ _CURRENT_DEVICE = 0
 
 
 def runtime(index=None):
-    if os.name != "nt":
-        raise CudaError("NEF2 CUDA backend currently supports Windows nvcuda.dll.")
     if index is None:
         index = _CURRENT_DEVICE
     if index not in _RUNTIMES:
@@ -330,6 +443,12 @@ class CudaTensor:
         count = min(int(count), self.size)
         return self._rt.copy_dtoh(self.ptr, count)
 
+    def copy_from_host(self, data):
+        flat = _flatten(data)
+        if len(flat) != self.size:
+            raise ValueError("size mismatch in copy_from_host: %s vs %s" % (len(flat), self.size))
+        self._rt.copy_htod(self.ptr, flat)
+
     def free(self):
         if getattr(self, "ptr", 0):
             self._rt.mem_free(self.ptr)
@@ -379,6 +498,48 @@ class CudaTensor:
         )
         return self
 
+    @classmethod
+    def from_flat(cls, flat, shape, device=None):
+        data = _unflatten(list(flat), tuple(shape))
+        return cls(data, device)
+
+    def matmul(self, other):
+        if not isinstance(other, CudaTensor):
+            other = CudaTensor(other, self.device)
+        if len(self.shape) < 2 or len(other.shape) < 2:
+            raise ValueError("matmul expects rank >= 2")
+        batch_a = self.shape[:-2]
+        batch_b = other.shape[:-2]
+        if batch_b not in ((), batch_a):
+            raise ValueError("batched matmul shape mismatch")
+        m, k = self.shape[-2], self.shape[-1]
+        k2, n = other.shape[-2], other.shape[-1]
+        if k != k2:
+            raise ValueError("matmul inner dims mismatch: %s vs %s" % (k, k2))
+        out_batch = batch_a
+        out_shape = out_batch + (m, n)
+        out = CudaTensor.empty(out_shape, self.device)
+        batch_count = _prod(out_batch) if out_batch else 1
+        b_batched = 1 if batch_b else 0
+        total = batch_count * m * n
+        block = 256
+        grid = (total + block - 1) // block
+        self._rt.launch(
+            "matmul",
+            [
+                ("u64", self.ptr),
+                ("u64", other.ptr),
+                ("u64", out.ptr),
+                ("u32", batch_count),
+                ("u32", m),
+                ("u32", k),
+                ("u32", n),
+                ("u32", b_batched),
+            ],
+            total,
+        )
+        return out
+
 
 def tensor(data, device=None):
     return CudaTensor(data, device)
@@ -400,6 +561,12 @@ def zeros(shape, device=None):
 
 def sgd_step_(param, grad, lr):
     return param.sgd_(grad, lr)
+
+
+def matmul(a, b, device=None):
+    if not isinstance(a, CudaTensor):
+        a = CudaTensor(a, device)
+    return a.matmul(b)
 
 
 def _shape(data):

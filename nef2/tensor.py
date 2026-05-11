@@ -116,10 +116,33 @@ def _ensure_tensor(value):
     return value if isinstance(value, Tensor) else Tensor(value)
 
 
+def _gpu_matmul(a_data, a_shape, b_data, b_shape, out_shape):
+    """Try to run matmul on GPU. Returns flat result or None on failure."""
+    try:
+        from . import gpu
+        if not gpu.cuda_available():
+            return None
+        if _prod(out_shape) < 256:
+            return None
+        a_gpu = gpu.CudaTensor.from_flat(a_data, a_shape)
+        b_gpu = gpu.CudaTensor.from_flat(b_data, b_shape)
+        c_gpu = a_gpu.matmul(b_gpu)
+        return _flatten(c_gpu.tolist())
+    except Exception:
+        return None
+
+
 class Tensor:
     def __init__(self, data, requires_grad=False, _children=(), _op=""):
         if isinstance(data, Tensor):
-            data = data.data
+            self.shape = data.shape
+            self.data = data.data[:]
+            self.requires_grad = bool(requires_grad)
+            self.grad = [0.0 for _ in self.data] if self.requires_grad else None
+            self._prev = set(_children)
+            self._op = _op
+            self._backward = lambda: None
+            return
         self.shape = _shape(data)
         self.data = _flatten(data)
         self.requires_grad = bool(requires_grad)
@@ -272,6 +295,32 @@ class Tensor:
         out._backward = backward
         return out
 
+    def gelu(self):
+        # approximation: 0.5 * x * (1 + tanh(sqrt(2/pi) * (x + 0.044715*x^3)))
+        out_data = [
+            0.5 * x * (1.0 + math.tanh(0.7978845608 * (x + 0.044715 * x ** 3)))
+            for x in self.data
+        ]
+        requires_grad = _GRAD_ENABLED and self.requires_grad
+        out = Tensor(_unflatten(out_data, self.shape), requires_grad, (self,), "gelu")
+
+        def backward():
+            if self.requires_grad:
+                # GELU derivative from the tanh approximation
+                for i, x in enumerate(self.data):
+                    a = 0.044715 * x ** 3
+                    b = x + a
+                    c = 0.7978845608 * b
+                    t = math.tanh(c)
+                    dt = 1.0 - t * t
+                    da = 3.0 * 0.044715 * x * x
+                    dc = 0.7978845608 * (1.0 + da)
+                    gelu_prime = 0.5 * (1.0 + t) + 0.5 * x * dt * dc
+                    self.grad[i] += out.grad[i] * gelu_prime
+
+        out._backward = backward
+        return out
+
     def relu(self):
         out_data = [x if x > 0.0 else 0.0 for x in self.data]
         requires_grad = _GRAD_ENABLED and self.requires_grad
@@ -357,9 +406,6 @@ class Tensor:
         out._backward = backward
         return out
 
-    def stack(self, values):
-        raise NotImplementedError("use Tensor.stack(values)")
-
     @staticmethod
     def stack(values, shape):
         values = [_ensure_tensor(value) for value in values]
@@ -413,35 +459,63 @@ class Tensor:
             raise ValueError("matmul shape mismatch: %s and %s" % (self.shape, other.shape))
         batch_shape = self.shape[:-2]
         out_shape = batch_shape + (m, n)
-        out_data = [0.0 for _ in range(_prod(out_shape))]
-        for batch_pos in range(_prod(batch_shape) if batch_shape else 1):
-            batch_idx = _flat_to_index(batch_pos, batch_shape) if batch_shape else ()
-            for i in range(m):
-                for j in range(n):
-                    total = 0.0
-                    for kk in range(k):
-                        a_pos = _index_to_flat(batch_idx + (i, kk), self.shape)
-                        b_index = (kk, j) if len(other.shape) == 2 else batch_idx + (kk, j)
-                        b_pos = _index_to_flat(b_index, other.shape)
-                        total += self.data[a_pos] * other.data[b_pos]
-                    out_data[_index_to_flat(batch_idx + (i, j), out_shape)] = total
-        requires_grad = _GRAD_ENABLED and (self.requires_grad or other.requires_grad)
-        out = Tensor(_unflatten(out_data, out_shape), requires_grad, (self, other), "matmul")
-
-        def backward():
+        out_data = _gpu_matmul(self.data, self.shape, other.data, other.shape, out_shape)
+        if out_data is None:
+            out_data = [0.0 for _ in range(_prod(out_shape))]
             for batch_pos in range(_prod(batch_shape) if batch_shape else 1):
                 batch_idx = _flat_to_index(batch_pos, batch_shape) if batch_shape else ()
                 for i in range(m):
                     for j in range(n):
-                        upstream = out.grad[_index_to_flat(batch_idx + (i, j), out_shape)]
+                        total = 0.0
                         for kk in range(k):
                             a_pos = _index_to_flat(batch_idx + (i, kk), self.shape)
                             b_index = (kk, j) if len(other.shape) == 2 else batch_idx + (kk, j)
                             b_pos = _index_to_flat(b_index, other.shape)
-                            if self.requires_grad:
-                                self.grad[a_pos] += upstream * other.data[b_pos]
-                            if other.requires_grad:
-                                other.grad[b_pos] += upstream * self.data[a_pos]
+                            total += self.data[a_pos] * other.data[b_pos]
+                        out_data[_index_to_flat(batch_idx + (i, j), out_shape)] = total
+        requires_grad = _GRAD_ENABLED and (self.requires_grad or other.requires_grad)
+        out = Tensor(_unflatten(out_data, out_shape), requires_grad, (self, other), "matmul")
+
+        def backward():
+            if self.requires_grad:
+                # dA = dC @ B^T
+                b_t_shape = other.shape[:-2] + (other.shape[-1], other.shape[-2])
+                b_t_data = Tensor(_unflatten(other.data, other.shape)).transpose(-2, -1).data
+                grad_a = _gpu_matmul(out.grad, out_shape, b_t_data, b_t_shape, self.shape)
+                if grad_a is None:
+                    for batch_pos in range(_prod(batch_shape) if batch_shape else 1):
+                        batch_idx = _flat_to_index(batch_pos, batch_shape) if batch_shape else ()
+                        for i in range(m):
+                            for kk in range(k):
+                                total = 0.0
+                                for j in range(n):
+                                    upstream = out.grad[_index_to_flat(batch_idx + (i, j), out_shape)]
+                                    b_t_pos = _index_to_flat(batch_idx + (j, kk), b_t_shape) if len(b_t_shape) > 2 else _index_to_flat((j, kk), b_t_shape)
+                                    total += upstream * b_t_data[b_t_pos]
+                                self.grad[_index_to_flat(batch_idx + (i, kk), self.shape)] += total
+                else:
+                    for i in range(len(self.grad)):
+                        self.grad[i] += grad_a[i]
+            if other.requires_grad:
+                # dB = A^T @ dC
+                a_t_shape = self.shape[:-2] + (self.shape[-1], self.shape[-2])
+                a_t_data = Tensor(_unflatten(self.data, self.shape)).transpose(-2, -1).data
+                other_shape = other.shape
+                grad_b = _gpu_matmul(a_t_data, a_t_shape, out.grad, out_shape, other_shape)
+                if grad_b is None:
+                    for batch_pos in range(_prod(batch_shape) if batch_shape else 1):
+                        batch_idx = _flat_to_index(batch_pos, batch_shape) if batch_shape else ()
+                        for kk in range(k):
+                            for j in range(n):
+                                total = 0.0
+                                for i in range(m):
+                                    upstream = out.grad[_index_to_flat(batch_idx + (i, j), out_shape)]
+                                    a_t_pos = _index_to_flat(batch_idx + (kk, i), a_t_shape) if len(a_t_shape) > 2 else _index_to_flat((kk, i), a_t_shape)
+                                    total += upstream * a_t_data[a_t_pos]
+                                other.grad[_index_to_flat(batch_idx + (kk, j), other_shape)] += total
+                else:
+                    for i in range(len(other.grad)):
+                        other.grad[i] += grad_b[i]
 
         out._backward = backward
         return out
@@ -449,7 +523,7 @@ class Tensor:
     def __matmul__(self, other):
         return self.matmul(other)
 
-    def softmax(self, axis=-1):
+    def log_softmax(self, axis=-1):
         axis %= len(self.shape)
         max_values = []
         for pos, value in enumerate(self.data):
@@ -459,8 +533,12 @@ class Tensor:
                 idx[axis] = i
                 best = max(best, self.data[_index_to_flat(tuple(idx), self.shape)])
             max_values.append(best)
-        exps = (self - Tensor(_unflatten(max_values, self.shape))).exp()
-        return exps / exps.sum(axis=axis, keepdims=True)
+        shifted = self - Tensor(_unflatten(max_values, self.shape))
+        log_sum_exp = shifted.exp().sum(axis=axis, keepdims=True).log()
+        return shifted - log_sum_exp
+
+    def softmax(self, axis=-1):
+        return self.log_softmax(axis=axis).exp()
 
     def backward(self):
         if len(self.data) != 1:

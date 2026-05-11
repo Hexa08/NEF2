@@ -203,11 +203,11 @@ def cross_entropy(logits, targets):
     classes = logits.shape[-1]
     flat_rows = len(logits.data) // classes
     total = Tensor(0.0)
-    probs = logits.softmax(axis=-1)
+    log_probs = logits.log_softmax(axis=-1)
     for row in range(flat_rows):
         target = int(targets.data[row])
-        p = probs.select(_flat_index(row, targets.shape) + (target,))
-        total = total - p.log()
+        p = log_probs.select(_flat_index(row, targets.shape) + (target,))
+        total = total - p
     return total / float(flat_rows)
 
 

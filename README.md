@@ -57,12 +57,13 @@ print(logits.shape)
 | CPU tensors | Implemented | Python-list tensor storage with scalar/list shapes |
 | Autograd | Implemented | Reverse-mode graph execution |
 | Neural layers | Implemented | `Linear`, `Embedding`, `LayerNorm`, `Dropout`, `Sequential` |
-| Optimizers | Implemented | `SGD`, `AdamW`, CUDA-backed `CudaSGD` bridge |
-| GPT model | Implemented on CPU | Compact causal Transformer model |
+| Optimizers | Implemented | `SGD`, `AdamW`, CUDA-backed `CudaSGD` with GPU caching |
+| GPT model | Implemented on CPU | Compact causal Transformer with KV cache and matmul attention |
+| KV cache | Implemented | Caches K/V across generation steps (O(n) per token) |
 | Wikipedia loader | Implemented | Uses Hugging Face dataset-server API with `urllib` |
-| `.nef` model files | Implemented | JSON model parameter snapshots |
-| NVIDIA CUDA backend | Implemented for vector kernels | Uses `nvcuda.dll` through `ctypes` |
-| Full GPT CUDA training | In progress | Needs GPU matmul, attention, layernorm, loss, and backward kernels |
+| `.nef` model files | Implemented | Compact binary format with integrity checks |
+| NVIDIA CUDA backend | Implemented | Vector kernels + matmul, Linux + Windows, dynamic SM detection |
+| Full GPT CUDA training | In progress | Needs GPU layernorm, loss, and backward kernels |
 | AMD, Intel, Apple GPUs | Planned | Requires separate native vendor backends |
 
 ## Architecture
@@ -107,8 +108,8 @@ mindmap
       200M preset
       Byte tokenizer
     Data
-      Wikipedia
-      Hugging Face rows API
+      Character tokenizer
+      Byte tokenizer
       Language model batches
     GPU
       CUDA driver API
@@ -121,34 +122,11 @@ mindmap
       model.nef
 ```
 
-## Training Flow
-
-```mermaid
-%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#2563eb", "primaryTextColor": "#ffffff", "lineColor": "#475569", "secondaryColor": "#eff6ff"}}}%%
-sequenceDiagram
-    participant CLI as nef2-wikipedia-200m
-    participant HF as Hugging Face dataset-server
-    participant TOK as ByteTokenizer
-    participant GPT as NEF2 GPT
-    participant OPT as Optimizer
-    participant FILE as model.nef
-
-    CLI->>HF: Fetch Wikipedia rows
-    HF-->>CLI: title, text
-    CLI->>TOK: Encode UTF-8 bytes
-    TOK-->>CLI: token ids
-    CLI->>GPT: Forward pass
-    GPT-->>CLI: logits
-    CLI->>GPT: cross_entropy + backward
-    CLI->>OPT: step()
-    CLI->>FILE: save_model()
-```
-
 ## CUDA Backend
 
-NEF2 includes a direct NVIDIA CUDA backend. It loads `nvcuda.dll`, creates a CUDA
-context, loads NEF2 PTX kernels, allocates device memory, launches kernels, and
-copies results back.
+NEF2 includes a direct NVIDIA CUDA backend. It loads the CUDA driver (`nvcuda.dll` on
+Windows, `libcuda.so.1` on Linux), creates a context, loads NEF2 PTX kernels,
+allocates device memory, launches kernels, and copies results back.
 
 ```python
 from nef2 import gpu
@@ -171,6 +149,17 @@ with gpu.use_device(0):
     x = gpu.tensor([1, 2, 3])
 ```
 
+GPU matrix multiplication:
+
+```python
+from nef2 import gpu
+
+a = gpu.tensor([[1.0, 2.0], [3.0, 4.0]])
+b = gpu.tensor([[5.0, 6.0], [7.0, 8.0]])
+c = a.matmul(b)
+print(c.tolist())
+```
+
 Keep the GPU busy long enough to verify in `nvidia-smi`:
 
 ```bash
@@ -184,39 +173,42 @@ device=NVIDIA GeForce RTX 3050 Ti Laptop GPU
 result=[3.0, 3.0, 3.0]
 ```
 
-## Wikipedia 200M Preset
+## Training
 
-NEF2 includes a Hugging Face Wikipedia loader that uses the public dataset-server
-API through Python's standard library.
+NEF2 does not bundle datasets. Bring your own text, tokenize it, and train:
 
-Create the 200M configuration without allocating the full pure-Python parameter
-set:
+```python
+from nef2 import GPT, GPTConfig, Tensor, AdamW, cross_entropy, save_model
+from nef2.data import make_lm_batch
+from nef2.byte_tokenizer import ByteTokenizer
 
-```bash
-nef2-wikipedia-200m --preset 200m --articles 8
-```
+# Load any text you want
+with open("my_text.txt", "rb") as f:
+    text = f.read()
 
-The current 200M preset is:
+tokenizer = ByteTokenizer()
+tokens = tokenizer.encode(text)
 
-| Setting | Value |
-| --- | ---: |
-| Parameters | `203,065,344` |
-| Vocabulary | `256` byte tokens |
-| Context length | `1024` |
-| Layers | `16` |
-| Hidden size | `1024` |
-| Attention heads | `16` |
+config = GPTConfig(
+    vocab_size=tokenizer.vocab_size,
+    block_size=256,
+    n_embd=384,
+    n_layer=6,
+    n_head=6,
+)
+model = GPT(config)
+opt = AdamW(model.parameters(), lr=3e-4)
 
-Run a tiny end-to-end smoke train on Wikipedia text:
+for step in range(1000):
+    xb, yb = make_lm_batch(tokens, batch_size=32, block_size=config.block_size)
+    loss = cross_entropy(model(xb), yb)
+    opt.zero_grad()
+    loss.backward()
+    opt.step()
+    if step % 100 == 0:
+        print(f"step {step}: loss = {loss.item():.4f}")
 
-```bash
-nef2-wikipedia-200m --preset tiny --articles 4 --steps 50 --batch-size 1 --block-size 8
-```
-
-Save a `.nef` model file:
-
-```bash
-nef2-wikipedia-200m --preset tiny --articles 4 --steps 50 --save model.nef
+save_model(model, "model.nef")
 ```
 
 ## Design Principles
@@ -240,10 +232,9 @@ nef2/
   tokenizer.py              # Character tokenizer
   byte_tokenizer.py         # Byte tokenizer
   data.py                   # Language-model batching
-  datasets/huggingface.py   # Wikipedia loader
   models/gpt.py             # Causal Transformer model
   models/presets.py         # 200M preset and parameter estimator
-  cli/                      # PyPI command-line tools
+  cli/                      # GPU stress test command-line tool
 ```
 
 ## Roadmap
@@ -251,13 +242,15 @@ nef2/
 ```mermaid
 %%{init: {"theme": "base", "themeVariables": {"primaryColor": "#7c3aed", "primaryTextColor": "#ffffff", "lineColor": "#64748b", "secondaryColor": "#f5f3ff"}}}%%
 flowchart TB
-    A["Current: CPU GPT + CUDA vector kernels"] --> B["GPU matmul kernels"]
+    A["CPU GPT + CUDA vector kernels"] --> B["GPU matmul kernels"]
     B --> C["GPU softmax and cross entropy"]
     C --> D["GPU layernorm and embedding kernels"]
     D --> E["GPU backward kernels"]
     E --> F["Full GPT CUDA training"]
-    F --> G["Checkpointed 200M training"]
-    G --> H["Additional vendor backends"]
+    F --> G["KV cache compressor (INT4, delta, LZ)"]
+    G --> H["Context window extension (RoPE / ALiBi)"]
+    H --> I["Checkpointed 200M training"]
+    I --> J["Additional vendor backends"]
 ```
 
 ## Status

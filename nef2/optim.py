@@ -52,6 +52,7 @@ class CudaSGD(Optimizer):
     def __init__(self, params, lr=1e-2):
         super().__init__(params)
         self.lr = lr
+        self._device_params = {}
 
     def step(self):
         from . import gpu
@@ -59,7 +60,11 @@ class CudaSGD(Optimizer):
         for param in self.params:
             if param.grad is None:
                 continue
-            device_param = gpu.tensor(param.data)
+            pid = id(param)
+            if pid not in self._device_params:
+                self._device_params[pid] = gpu.tensor(param.data)
+            else:
+                self._device_params[pid].copy_from_host(param.data)
             device_grad = gpu.tensor(param.grad)
-            gpu.sgd_step_(device_param, device_grad, self.lr)
-            param.data = device_param.tolist()
+            gpu.sgd_step_(self._device_params[pid], device_grad, self.lr)
+            param.data = self._device_params[pid].tolist()

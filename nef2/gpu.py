@@ -409,6 +409,62 @@ end_exp:
 done_ce:
     ret;
 }
+
+.visible .entry embedding_fwd(.param .u64 weight_ptr, .param .u64 indices_ptr, .param .u64 out_ptr, .param .u32 n_indices, .param .u32 vocab_size, .param .u32 embed_dim)
+{
+    .reg .pred %p;
+    .reg .b32 %r<15>;
+    .reg .b64 %rd<10>;
+    .reg .f32 %f<2>;
+
+    ld.param.u64 %rd1, [weight_ptr];
+    ld.param.u64 %rd2, [indices_ptr];
+    ld.param.u64 %rd3, [out_ptr];
+    ld.param.u32 %r4, [n_indices];
+    ld.param.u32 %r5, [vocab_size];
+    ld.param.u32 %r6, [embed_dim];
+
+    mov.u32 %r1, %ctaid.x;
+    mov.u32 %r2, %ntid.x;
+    mul.lo.s32 %r3, %r1, %r2;
+    mov.u32 %r7, %tid.x;
+    add.u32 %r3, %r3, %r7;  // global index
+
+    // Each thread handles one (index, dim) pair
+    // Total work = n_indices * embed_dim
+    mul.lo.s32 %r8, %r4, %r6;  // total elements
+    setp.ge.u32 %p, %r3, %r8;
+    @%p bra done_embed;
+
+    // Compute which index and which dim this thread handles
+    div.u32 %r9, %r3, %r6;   // idx = global_pos / embed_dim
+    rem.u32 %r10, %r3, %r6;  // dim = global_pos % embed_dim
+
+    // Load token id
+    mul.wide.u32 %rd4, %r9, 4;
+    add.s64 %rd5, %rd2, %rd4;
+    ld.global.u32 %r11, [%rd5];
+
+    // Bounds check on vocab
+    setp.ge.u32 %p, %r11, %r5;
+    @%p bra done_embed;
+    setp.lt.u32 %p, %r11, 0;
+    @%p bra done_embed;
+
+    // Compute weight offset: token_id * embed_dim + dim
+    mad.lo.s32 %r12, %r11, %r6, %r10;
+    mul.wide.u32 %rd6, %r12, 4;
+    add.s64 %rd7, %rd1, %rd6;
+    ld.global.f32 %f1, [%rd7];
+
+    // Store to output
+    mul.wide.u32 %rd8, %r3, 4;
+    add.s64 %rd9, %rd3, %rd8;
+    st.global.f32 [%rd9], %f1;
+
+done_embed:
+    ret;
+}
 """
 
 
@@ -710,6 +766,11 @@ class CudaTensor:
         obj.ptr = obj._rt.mem_alloc(4 * obj.size)
         return obj
 
+    @property
+    def data(self):
+        """Return flat list of values (copies from GPU to CPU)."""
+        return self._rt.copy_dtoh(self.ptr, self.size)
+
     def tolist(self):
         return _unflatten(self._rt.copy_dtoh(self.ptr, self.size), self.shape)
 
@@ -841,6 +902,30 @@ class CudaTensor:
         )
         return out
 
+    def embedding(self, weight, vocab_size, embed_dim):
+        """Embedding lookup: indices -> embeddings."""
+        if not isinstance(weight, CudaTensor):
+            weight = CudaTensor(weight, self.device)
+        n_indices = self.size
+        out_shape = self.shape + (embed_dim,)
+        out = CudaTensor.empty(out_shape, self.device)
+        total = n_indices * embed_dim
+        block = 256
+        grid = (total + block - 1) // block
+        self._rt.launch(
+            "embedding_fwd",
+            [
+                ("u64", weight.ptr),
+                ("u64", self.ptr),
+                ("u64", out.ptr),
+                ("u32", n_indices),
+                ("u32", vocab_size),
+                ("u32", embed_dim),
+            ],
+            total,
+        )
+        return out
+
 
 def tensor(data, device=None):
     return CudaTensor(data, device)
@@ -874,6 +959,13 @@ def layernorm(x, gamma, beta, eps=1e-5, device=None):
     if not isinstance(x, CudaTensor):
         x = CudaTensor(x, device)
     return x.layernorm(gamma, beta, eps)
+
+
+def embedding(indices, weight, vocab_size, embed_dim, device=None):
+    """GPU embedding lookup. indices: flat int array, weight: (vocab_size, embed_dim)."""
+    if not isinstance(indices, CudaTensor):
+        indices = CudaTensor(indices, device)
+    return indices.embedding(weight, vocab_size, embed_dim)
 
 
 def cross_entropy(logits, targets, device=None):

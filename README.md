@@ -63,7 +63,9 @@ print(logits.shape)
 | `.nef` model files | Implemented | Compact binary format with integrity checks |
 | NVIDIA CUDA backend | Implemented | Vector kernels + matmul + layernorm + cross-entropy, Linux + Windows |
 | GPU layernorm | Implemented | PTX kernel, integrated into `nn.LayerNorm` |
+| GPU embedding | Implemented | PTX kernel, integrated into `nn.Embedding` |
 | GPU cross-entropy | Implemented | PTX kernel with stable log-softmax |
+| CudaTensor.data | Implemented | Property for CPU/GPU tensor compatibility |
 | Vendor backend detection | Implemented | Auto-detects CUDA, HIP, Level Zero, Metal |
 | AMD, Intel, Apple backends | Planned | Native kernels for HIP, Level Zero, Metal |
 | Full GPU backward kernels | Planned | Dedicated backward kernels for matmul, layernorm |

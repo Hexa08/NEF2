@@ -123,8 +123,14 @@ class Embedding(Module):
         self.weight = Parameter(
             [[random.gauss(0.0, scale) for _ in range(embedding_dim)] for _ in range(num_embeddings)]
         )
+        self.num_embeddings = num_embeddings
+        self.embedding_dim = embedding_dim
 
     def forward(self, token_ids):
+        # Try GPU embedding for large tensors
+        gpu_out = _gpu_embedding(token_ids, self.weight, self.num_embeddings, self.embedding_dim)
+        if gpu_out is not None:
+            return gpu_out
         shape = tuple(token_ids.shape) + (self.weight.shape[1],)
         data = []
         for token in token_ids.data:
@@ -143,6 +149,23 @@ class Embedding(Module):
 
         out._backward = backward
         return out
+
+
+def _gpu_embedding(token_ids, weight, vocab_size, embed_dim):
+    try:
+        from . import gpu
+        if not gpu.cuda_available():
+            return None
+        if token_ids.size < 256:
+            return None
+        # Convert token_ids to CudaTensor (integers work as floats on GPU)
+        ids_gpu = gpu.CudaTensor.from_flat(token_ids.data, token_ids.shape)
+        out_gpu = ids_gpu.embedding(weight.data, vocab_size, embed_dim)
+        out_data = out_gpu.tolist()
+        out_shape = token_ids.shape + (embed_dim,)
+        return Tensor(out_data, weight.requires_grad, (weight,), "embedding")
+    except Exception:
+        return None
 
 
 def _nest(values, shape):

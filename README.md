@@ -1,111 +1,93 @@
 <div align="center">
+  <img src="https://raw.githubusercontent.com/Hexa08/NEF2/main/assets/logo.png" alt="NEF2 Logo" width="200">
+  <h1>NEF2: The AI Operating Substrate</h1>
+  <p><strong>A hardware-native, framework-independent intelligence stack for the next generation of autonomous systems.</strong></p>
 
-# NEF2: The AI Operating Substrate
-
-**A next-generation neural framework designed for peak performance, hardware-native execution, and autonomous AI systems.**
-
-[![PyPI](https://img.shields.io/pypi/v/nef2.svg?color=0f766e)](https://pypi.org/project/nef2/)
-[![Python](https://img.shields.io/pypi/pyversions/nef2.svg?color=2563eb)](https://pypi.org/project/nef2/)
-[![License](https://img.shields.io/badge/license-MIT-111827.svg)](LICENSE)
-[![GPU](https://img.shields.io/badge/GPU-Native%20CUDA%20%7C%20HIP%20%7C%20Metal-f59e0b.svg)](#hardware-native-stack)
-
-`pip install nef2`
-
+  <div>
+    <a href="https://pypi.org/project/nef2/"><img src="https://img.shields.io/pypi/v/nef2.svg?style=flat-square&color=0f766e" alt="PyPI"></a>
+    <a href="https://github.com/Hexa08/NEF2/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-111827.svg?style=flat-square" alt="License"></a>
+    <a href="https://github.com/Hexa08/NEF2/actions"><img src="https://img.shields.io/badge/build-passing-059669.svg?style=flat-square" alt="Build"></a>
+    <a href="#hardware-native-stack"><img src="https://img.shields.io/badge/GPU-Native%20CUDA%20%7C%20HIP%20%7C%20Metal-f59e0b.svg?style=flat-square" alt="Hardware"></a>
+  </div>
 </div>
 
 ---
 
-## 🚀 Vision
+## 🌌 The Vision
 
-NEF2 is not just another "deep learning library." It is an **AI Infrastructure Stack** built to bridge the gap between high-level research and hardware-peak performance. While traditional frameworks treat GPUs as external devices, NEF2 treats them as native components of a unified **AI Memory Fabric**.
+NEF2 is not a library; it is a **Substrate**. It eliminates the "framework tax" by bypassing heavy abstractions like PyTorch and JAX, communicating directly with the silicon through a custom-built hardware-native stack.
 
-### Why NEF2?
-*   **Zero-Framework Dependency:** No PyTorch, no TensorFlow, no JAX. We talk directly to the hardware.
-*   **Hardware-Native Stack:** Custom CUDA driver backend using raw PTX kernels for maximum efficiency.
-*   **NEFCore Runtime:** A hybrid execution engine spanning Python, C++, and Rust.
-*   **HyperCache Memory:** Intelligent KV-cache management that virtualizes VRAM across System RAM and NVMe.
-*   **Agent-Native Architecture:** Built from the ground up to support autonomous agents as first-class primitives.
+It is designed for a world where AI is not just a model, but a distributed, agentic system requiring zero-copy memory movement, hardware-peak performance, and intelligent memory virtualization.
+
+## 🚀 Key Pillars
+
+- **Zero-Dependency Core**: Pure Python/C++/Rust. No external ML frameworks.
+- **Hardware-Native Stack (NEF-HNS)**: Direct NVIDIA Driver API integration using raw PTX assembly.
+- **HyperCache Memory**: Transparent virtualization of VRAM across System RAM and NVMe for trillion-parameter scale.
+- **Agent-Native Primitives**: Built-in support for model-chaining, shared tensor buses, and streaming inference.
 
 ---
 
-## 🛠 Features & Capabilities
+## 🛠 Feature Matrix
 
-| Area | Status | Technology |
+| Feature | Status | Technology |
 | :--- | :--- | :--- |
-| **Execution Engine** | ✅ Active | **NEFCore**: C++ / Python / Rust hybrid |
-| **GPU Backend** | ✅ Active | **Native CUDA Driver** (no external toolkit required) |
-| **Autograd** | ✅ Active | Reverse-mode graph execution |
-| **Memory** | 🚧 Beta | **HyperCache**: Hierarchical VRAM/RAM/NVMe pooling |
-| **Quantization** | 🚧 Beta | **TurboQuant**: Dynamic precision (FP8, INT4, NF4) |
-| **Multi-GPU** | 📅 Planned | Native GPU Fabric for unified execution |
-| **Compiler** | 📅 Planned | **NEFDynamo**: Graph capture & kernel fusion |
+| **NEFCore Runtime** | ✅ Production | Hybrid C++/Rust/Python execution |
+| **CUDA Driver Backend** | ✅ Production | Raw PTX Kernel execution |
+| **HyperCache (VRAM/RAM)** | 🚧 Beta | Intelligent memory paging |
+| **TurboQuant** | 🚧 Beta | Adaptive precision (FP8, INT4, NF4) |
+| **Multi-GPU Fabric** | 📅 Q3 2026 | Unified logical accelerator |
+| **NEF Compiler** | 📅 Q4 2026 | Graph capture & kernel fusion |
 
 ---
 
-## 📦 Project Layout
+## 📖 Documentation Suite
 
-```text
-nef2/
-  ├── gpu.py             # Native CUDA Driver backend (PTX Kernels)
-  ├── tensor.py          # NEFCore Tensor engine & Autograd
-  ├── nn.py              # Neural layers (Linear, LayerNorm, etc.)
-  ├── models/            # Native model implementations (GPT, Vision)
-  ├── compiler/          # JIT Graph capture & Inductor fusion
-  ├── vendor/            # High-performance native BLAS/NCCL libs
-  └── cli/               # Hardware stress tests & diagnostic tools
-```
+For deep dives into specific areas of the NEF2 ecosystem:
+
+*   **[Getting Started](./docs/GETTING_STARTED.md)**: Installation, your first model, and basic training.
+*   **[Architecture Deep-Dive](./docs/ARCHITECTURE.md)**: Understanding NEFCore, HyperCache, and the Compiler stack.
+*   **[Hardware Support](./docs/HARDWARE.md)**: Details on CUDA, HIP, Metal, and NPU integration.
+*   **[Developer Guide](./docs/DEVELOPER.md)**: Contributing, coding standards, and kernel development.
 
 ---
 
 ## 🚦 Quick Start
 
-### Hardware-Native Tensor Operations
-NEF2 automatically detects and utilizes available hardware backends (CUDA, HIP, Metal).
+### Installation
+
+```bash
+pip install nef2
+```
+
+### Hardware-Native Tensors
 
 ```python
 from nef2 import Tensor
 import nef2.gpu as gpu
 
-# Create a tensor (defaults to NEFCore CPU)
+# NEF2 automatically handles device placement
 x = Tensor([[1, 2], [3, 4]], requires_grad=True)
 
-# Explicitly use the CUDA backend if available
 if gpu.cuda_available():
-    a = gpu.tensor([[1.0, 2.0], [3.0, 4.0]])
-    b = gpu.tensor([[5.0, 6.0], [7.0, 8.0]])
+    # Direct hardware-native matmul
+    a, b = gpu.tensor([[1.0, 2.0]]), gpu.tensor([[3.0], [4.0]])
     c = a.matmul(b)
-    print(c.tolist())
-```
-
-### Building a Model
-NEF2 provides a familiar API for users of modern ML frameworks while maintaining internal independence.
-
-```python
-from nef2.models import GPT, GPTConfig
-
-config = GPTConfig(vocab_size=16, block_size=256, n_embd=384, n_layer=6, n_head=6)
-model = GPT(config)
-
-# Forward pass through the GPT architecture
-logits = model(Tensor([[1, 2, 3, 4]]))
+    print(f"Result on {gpu.device_name()}: {c.tolist()}")
 ```
 
 ---
 
-## 🗺 Roadmap: The Road to Autonomy
+## 🗺 Roadmap
 
-1.  **Phase 1: Foundation** - Pure Python/C++ core with custom CUDA kernels (Current).
-2.  **Phase 2: Hybrid Acceleration** - Integration of Rust for safe, distributed concurrency and networking.
-3.  **Phase 3: HyperScale Fabric** - Unified multi-GPU runtime where all cards behave as one logical accelerator.
-4.  **Phase 4: Agentic Intelligence** - Native support for streaming inference pipelines and agent coordination.
-
----
-
-## 📄 License
-NEF2 is released under the **MIT License**. See [LICENSE](LICENSE) for details.
+1.  **Phase 1 (Active)**: Establish the Foundation with NEFCore and custom CUDA kernels.
+2.  **Phase 2**: Implement the Rust-based safe concurrency layer and distributed networking.
+3.  **Phase 3**: Launch the HyperScale Multi-GPU Fabric for unified cluster execution.
+4.  **Phase 4**: Realize Agent-Native Infrastructure for autonomous, model-agnostic intelligence.
 
 ---
 
 <div align="center">
-  <b>Built for the future of Distributed Intelligence.</b>
+  <p>Built for the future of <strong>Distributed Intelligence</strong>.</p>
+  <p>Join the revolution at <a href="https://github.com/Hexa08/NEF2">github.com/Hexa08/NEF2</a></p>
 </div>

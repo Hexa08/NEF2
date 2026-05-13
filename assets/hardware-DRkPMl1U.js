@@ -1,4 +1,4 @@
-import{t as e}from"./index-mj3Ep446.js";var t=e();function n(e){let n={a:`a`,code:`code`,h1:`h1`,h2:`h2`,h3:`h3`,li:`li`,p:`p`,pre:`pre`,strong:`strong`,ul:`ul`,...e.components};return(0,t.jsxs)(t.Fragment,{children:[(0,t.jsx)(n.h1,{children:`Hardware Support Matrix`}),`
+import{t as e}from"./index-Bm8i0iSn.js";var t=e();function n(e){let n={a:`a`,code:`code`,h1:`h1`,h2:`h2`,h3:`h3`,li:`li`,p:`p`,pre:`pre`,strong:`strong`,ul:`ul`,...e.components};return(0,t.jsxs)(t.Fragment,{children:[(0,t.jsx)(n.h1,{children:`Hardware Support Matrix`}),`
 `,(0,t.jsx)(n.p,{children:`NEF2 is designed to extract maximum performance from diverse hardware without requiring code changes from the user. We implement backend-specific drivers that talk directly to the hardware.`}),`
 `,(0,t.jsx)(n.h2,{children:`Support Overview`}),`
 `,(0,t.jsxs)(n.p,{children:[`| Backend | Platform | Status | Primary Library |

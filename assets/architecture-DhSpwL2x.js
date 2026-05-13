@@ -1,4 +1,4 @@
-import{t as e}from"./index-mj3Ep446.js";var t=e();function n(e){let n={code:`code`,em:`em`,h1:`h1`,h2:`h2`,h3:`h3`,li:`li`,p:`p`,pre:`pre`,strong:`strong`,ul:`ul`,...e.components};return(0,t.jsxs)(t.Fragment,{children:[(0,t.jsx)(n.h1,{children:`NEF2 Architecture`}),`
+import{t as e}from"./index-Bm8i0iSn.js";var t=e();function n(e){let n={code:`code`,em:`em`,h1:`h1`,h2:`h2`,h3:`h3`,li:`li`,p:`p`,pre:`pre`,strong:`strong`,ul:`ul`,...e.components};return(0,t.jsxs)(t.Fragment,{children:[(0,t.jsx)(n.h1,{children:`NEF2 Architecture`}),`
 `,(0,t.jsx)(n.p,{children:`NEF2 is structured as a hierarchical stack that abstracts hardware complexity while exposing raw performance primitives.`}),`
 `,(0,t.jsx)(n.h2,{children:`The Multi-Layered Substrate`}),`
 `,(0,t.jsx)(n.p,{children:`The system is divided into five distinct layers, each optimized for its specific role in the execution lifecycle.`}),`

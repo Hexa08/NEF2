@@ -1,4 +1,4 @@
-import{t as e}from"./index-mj3Ep446.js";var t=e();function n(e){let n={a:`a`,code:`code`,h1:`h1`,h2:`h2`,h3:`h3`,li:`li`,p:`p`,pre:`pre`,strong:`strong`,ul:`ul`,...e.components};return(0,t.jsxs)(t.Fragment,{children:[(0,t.jsx)(n.h1,{children:`Getting Started`}),`
+import{t as e}from"./index-Bm8i0iSn.js";var t=e();function n(e){let n={a:`a`,code:`code`,h1:`h1`,h2:`h2`,h3:`h3`,li:`li`,p:`p`,pre:`pre`,strong:`strong`,ul:`ul`,...e.components};return(0,t.jsxs)(t.Fragment,{children:[(0,t.jsx)(n.h1,{children:`Getting Started`}),`
 `,(0,t.jsx)(n.p,{children:`Welcome to the NEF2 ecosystem. This guide will help you set up your environment and build your first hardware-native model.`}),`
 `,(0,t.jsx)(n.h2,{children:`Prerequisites`}),`
 `,(0,t.jsx)(n.p,{children:`Before installing NEF2, ensure your system meets the following requirements:`}),`

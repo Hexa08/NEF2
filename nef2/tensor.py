@@ -131,6 +131,23 @@ def _gpu_matmul(a_data, a_shape, b_data, b_shape, out_shape):
     except Exception:
         return None
 
+def _gpu_matmul_relu(a_data, a_shape, b_data, b_shape, out_shape):
+    """Try to run fused matmul_relu on GPU. Returns flat result or None on failure."""
+    try:
+        from . import gpu
+        if not gpu.cuda_available():
+            return None
+        if _prod(out_shape) < 256:
+            return None
+        a_gpu = gpu.CudaTensor.from_flat(a_data, a_shape)
+        b_gpu = gpu.CudaTensor.from_flat(b_data, b_shape)
+        c_gpu = a_gpu.matmul_relu(b_gpu)
+        return _flatten(c_gpu.tolist())
+    except Exception:
+        return None
+
+def _do_nothing():
+    pass
 
 class Tensor:
     def __init__(self, data, requires_grad=False, _children=(), _op=""):
@@ -141,7 +158,7 @@ class Tensor:
             self.grad = [0.0 for _ in self.data] if self.requires_grad else None
             self._prev = set(_children)
             self._op = _op
-            self._backward = lambda: None
+            self._backward = _do_nothing
             return
         self.shape = _shape(data)
         self.data = _flatten(data)
@@ -149,7 +166,7 @@ class Tensor:
         self.grad = [0.0 for _ in self.data] if self.requires_grad else None
         self._prev = set(_children)
         self._op = _op
-        self._backward = lambda: None
+        self._backward = _do_nothing
 
     @staticmethod
     def zeros(shape, requires_grad=False):
@@ -176,12 +193,31 @@ class Tensor:
     def _binary(self, other, op, grad_self, grad_other, name):
         other = _ensure_tensor(other)
         out_shape = _broadcast_shape(self.shape, other.shape)
-        out_data = []
-        for pos in range(_prod(out_shape)):
-            idx = _flat_to_index(pos, out_shape)
-            a = self.data[_broadcast_pos(idx, self.shape, out_shape)]
-            b = other.data[_broadcast_pos(idx, other.shape, out_shape)]
-            out_data.append(op(a, b))
+        
+        # Try C++ backend for same-sized tensors
+        out_data = None
+        if self.shape == other.shape:
+            try:
+                import nef_core
+                if name == "+":
+                    out_data = nef_core.fast_add(self.data, other.data)
+                elif name == "-":
+                    out_data = nef_core.fast_sub(self.data, other.data)
+                elif name == "*":
+                    out_data = nef_core.fast_mul(self.data, other.data)
+                elif name == "/":
+                    out_data = nef_core.fast_div(self.data, other.data)
+            except Exception:
+                pass
+
+        if out_data is None:
+            out_data = []
+            for pos in range(_prod(out_shape)):
+                idx = _flat_to_index(pos, out_shape)
+                a = self.data[_broadcast_pos(idx, self.shape, out_shape)]
+                b = other.data[_broadcast_pos(idx, other.shape, out_shape)]
+                out_data.append(op(a, b))
+        
         requires_grad = _GRAD_ENABLED and (self.requires_grad or other.requires_grad)
         out = Tensor(_unflatten(out_data, out_shape), requires_grad, (self, other), name)
 
@@ -322,7 +358,11 @@ class Tensor:
         return out
 
     def relu(self):
-        out_data = [x if x > 0.0 else 0.0 for x in self.data]
+        try:
+            import nef_core
+            out_data = nef_core.fast_relu(self.data)
+        except Exception:
+            out_data = [x if x > 0.0 else 0.0 for x in self.data]
         requires_grad = _GRAD_ENABLED and self.requires_grad
         out = Tensor(_unflatten(out_data, self.shape), requires_grad, (self,), "relu")
 
@@ -342,7 +382,11 @@ class Tensor:
     def sum(self, axis=None, keepdims=False):
         if axis is None:
             out_shape = (1,) if keepdims else ()
-            out_data = [sum(self.data)]
+            try:
+                import nef_core
+                out_data = [nef_core.fast_sum(self.data)]
+            except Exception:
+                out_data = [sum(self.data)]
         else:
             if axis < 0:
                 axis += len(self.shape)
@@ -382,6 +426,13 @@ class Tensor:
         return self.sum(axis=axis, keepdims=keepdims) / float(denom)
 
     def reshape(self, shape):
+        shape = list(shape)
+        if -1 in shape:
+            idx = shape.index(-1)
+            total = _prod(self.shape)
+            other = _prod([s for s in shape if s != -1])
+            shape[idx] = total // other
+            
         if _prod(shape) != len(self.data):
             raise ValueError("cannot reshape %s to %s" % (self.shape, shape))
         requires_grad = _GRAD_ENABLED and self.requires_grad
@@ -409,14 +460,20 @@ class Tensor:
     @staticmethod
     def stack(values, shape):
         values = [_ensure_tensor(value) for value in values]
-        data = [value.data[0] for value in values]
+        data = []
+        for value in values:
+            data.extend(value.data)
         requires_grad = _GRAD_ENABLED and any(value.requires_grad for value in values)
         out = Tensor(_unflatten(data, shape), requires_grad, tuple(values), "stack")
 
         def backward():
-            for value, upstream in zip(values, out.grad):
+            offset = 0
+            for value in values:
+                length = len(value.data)
                 if value.requires_grad:
-                    value.grad[0] += upstream
+                    for i in range(length):
+                        value.grad[i] += out.grad[offset + i]
+                offset += length
 
         out._backward = backward
         return out
@@ -461,18 +518,22 @@ class Tensor:
         out_shape = batch_shape + (m, n)
         out_data = _gpu_matmul(self.data, self.shape, other.data, other.shape, out_shape)
         if out_data is None:
-            out_data = [0.0 for _ in range(_prod(out_shape))]
-            for batch_pos in range(_prod(batch_shape) if batch_shape else 1):
-                batch_idx = _flat_to_index(batch_pos, batch_shape) if batch_shape else ()
-                for i in range(m):
-                    for j in range(n):
-                        total = 0.0
-                        for kk in range(k):
-                            a_pos = _index_to_flat(batch_idx + (i, kk), self.shape)
-                            b_index = (kk, j) if len(other.shape) == 2 else batch_idx + (kk, j)
-                            b_pos = _index_to_flat(b_index, other.shape)
-                            total += self.data[a_pos] * other.data[b_pos]
-                        out_data[_index_to_flat(batch_idx + (i, j), out_shape)] = total
+            try:
+                import nef_core
+                out_data = nef_core.fast_matmul(self.data, list(self.shape), other.data, list(other.shape))
+            except Exception:
+                out_data = [0.0 for _ in range(_prod(out_shape))]
+                for batch_pos in range(_prod(batch_shape) if batch_shape else 1):
+                    batch_idx = _flat_to_index(batch_pos, batch_shape) if batch_shape else ()
+                    for i in range(m):
+                        for j in range(n):
+                            total = 0.0
+                            for kk in range(k):
+                                a_pos = _index_to_flat(batch_idx + (i, kk), self.shape)
+                                b_index = (kk, j) if len(other.shape) == 2 else batch_idx + (kk, j)
+                                b_pos = _index_to_flat(b_index, other.shape)
+                                total += self.data[a_pos] * other.data[b_pos]
+                            out_data[_index_to_flat(batch_idx + (i, j), out_shape)] = total
         requires_grad = _GRAD_ENABLED and (self.requires_grad or other.requires_grad)
         out = Tensor(_unflatten(out_data, out_shape), requires_grad, (self, other), "matmul")
 
@@ -520,10 +581,94 @@ class Tensor:
         out._backward = backward
         return out
 
+    def _fused_matmul_relu(self, other):
+        other = _ensure_tensor(other)
+        if len(self.shape) < 2 or len(other.shape) < 2:
+            raise ValueError("_fused_matmul_relu expects tensors with rank >= 2")
+        batch_shape = self.shape[:-2]
+        out_shape = batch_shape + (self.shape[-2], other.shape[-1])
+        
+        out_data = _gpu_matmul_relu(self.data, self.shape, other.data, other.shape, out_shape)
+        if out_data is None:
+            try:
+                import nef_core
+                out_data = nef_core.fast_matmul_relu(self.data, list(self.shape), other.data, list(other.shape))
+            except Exception:
+                # Fallback to eager sequential logic
+                return self.matmul(other).relu()
+                
+        requires_grad = _GRAD_ENABLED and (self.requires_grad or other.requires_grad)
+        return Tensor(_unflatten(out_data, out_shape), requires_grad, (self, other), "_fused_matmul_relu")
+
     def __matmul__(self, other):
         return self.matmul(other)
 
+    @staticmethod
+    def cat(tensors, axis=0):
+        # Handle ProxyTensor tracing
+        from .compiler.dynamo import ProxyTensor
+        if any(isinstance(t, ProxyTensor) for t in tensors):
+            first = next(t for t in tensors if isinstance(t, ProxyTensor))
+            # Rough shape inference
+            out_shape = list(first.shape)
+            out_shape[axis] = sum(t.shape[axis] for t in tensors)
+            node = first.node.graph.create_node('call_function', Tensor.cat, tuple(t.node if isinstance(t, ProxyTensor) else t for t in tensors), {'axis': axis})
+            return ProxyTensor(node, shape=tuple(out_shape))
+
+        tensors = [_ensure_tensor(t) for t in tensors]
+        if not tensors: return Tensor([])
+        # Real implementation
+        data = []
+        for t in tensors:
+            data.extend(t.data)
+        out_shape = list(tensors[0].shape)
+        out_shape[axis] = sum(t.shape[axis] for t in tensors)
+        return Tensor(_unflatten(data, out_shape))
+
+    def expand(self, shape):
+        shape = list(shape)
+        if -1 in shape:
+            idx = shape.index(-1)
+            total = _prod(self.shape)
+            other = _prod([s for s in shape if s != -1])
+            shape[idx] = total // other
+            
+        # Handle ProxyTensor tracing
+        from .compiler.dynamo import ProxyTensor
+        if isinstance(self, ProxyTensor):
+            node = self.node.graph.create_node('call_method', 'expand', (self.node, tuple(shape)))
+            return ProxyTensor(node, shape=tuple(shape))
+            
+        # Real implementation
+        # (Simplified broadcasting-based copy)
+        n_items = _prod(shape)
+        out_data = [0.0] * n_items
+        # Very simple broadcasting for common cases (e.g. 1 -> N)
+        if len(self.data) == 1:
+            out_data = [self.data[0]] * n_items
+        else:
+            # Fallback to python list multiplication if it matches
+            if n_items % len(self.data) == 0:
+                out_data = self.data * (n_items // len(self.data))
+            else:
+                raise ValueError("complex broadcasting in expand not implemented in eager")
+        
+        return Tensor(_unflatten(out_data, tuple(shape)))
+
+    def __getitem__(self, idx):
+        # Real implementation (simplified)
+        if isinstance(idx, slice):
+             return self # Dummy slice
+        return self.select(idx)
+
     def log_softmax(self, axis=-1):
+        try:
+            import nef_core
+            out_data = nef_core.fast_log_softmax(self.data, list(self.shape), axis)
+            return Tensor(_unflatten(out_data, self.shape), self.requires_grad, (self,), "log_softmax")
+        except Exception:
+            pass
+
         axis %= len(self.shape)
         max_values = []
         for pos, value in enumerate(self.data):

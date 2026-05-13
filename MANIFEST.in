@@ -1,6 +1,13 @@
-exclude model.nef
+exclude prd.md
+exclude gpt_mini.nef
+prune tests
 prune .pytest_cache
 prune dist
 prune build
 prune *.egg-info
 global-exclude __pycache__ *.py[cod]
+recursive-include csrc *
+recursive-include nef2/vendor *
+include nef_core.cpython-312-x86_64-linux-gnu.so
+include nef2/nef_rust.so
+recursive-include csrc/nef_rust/target/release *.so *.rlib

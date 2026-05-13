@@ -16,6 +16,14 @@ class Module:
     def forward(self, *args, **kwargs):
         raise NotImplementedError
 
+    def __rshift__(self, other):
+        """NEF Pipeline Engine connectivity. Allows model chaining: model1 >> model2"""
+        if isinstance(self, Pipeline):
+            return Pipeline(*(self.models + [other]))
+        if isinstance(other, Pipeline):
+            return Pipeline(*([self] + other.models))
+        return Pipeline(self, other)
+
     def parameters(self):
         params = []
         for value in self.__dict__.values():
@@ -131,6 +139,28 @@ class Embedding(Module):
         gpu_out = _gpu_embedding(token_ids, self.weight, self.num_embeddings, self.embedding_dim)
         if gpu_out is not None:
             return gpu_out
+        
+        # Try CPU C++ backend
+        try:
+            import nef_core
+            out_data = nef_core.fast_embedding(token_ids.data, self.weight.data, self.num_embeddings, self.embedding_dim)
+            shape = tuple(token_ids.shape) + (self.weight.shape[1],)
+            out = Tensor(_nest(out_data, shape), self.weight.requires_grad, (self.weight,), "embedding")
+            
+            def backward():
+                if self.weight.requires_grad:
+                    width = self.weight.shape[1]
+                    for i, token in enumerate(token_ids.data):
+                        start = int(token) * width
+                        grad_start = i * width
+                        for j in range(width):
+                            self.weight.grad[start + j] += out.grad[grad_start + j]
+            
+            out._backward = backward
+            return out
+        except Exception:
+            pass
+
         shape = tuple(token_ids.shape) + (self.weight.shape[1],)
         data = []
         for token in token_ids.data:
@@ -195,6 +225,7 @@ class LayerNorm(Module):
         gpu_out = _gpu_layernorm(x, self.weight, self.bias, self.eps)
         if gpu_out is not None:
             return gpu_out
+        
         mean = x.mean(axis=-1, keepdims=True)
         centered = x - mean
         var = (centered * centered).mean(axis=-1, keepdims=True)
@@ -202,6 +233,11 @@ class LayerNorm(Module):
 
 
 def _gpu_layernorm(x, weight, bias, eps):
+    from .compiler.dynamo import ProxyTensor
+    if isinstance(x, ProxyTensor):
+        node = x.node.graph.create_node('call_method', 'layernorm', (x.node, weight, bias, eps))
+        return ProxyTensor(node, shape=x.shape)
+    
     try:
         from . import gpu
         if not gpu.cuda_available():
@@ -224,6 +260,10 @@ class Dropout(Module):
         self.training = True
 
     def forward(self, x):
+        from .compiler.dynamo import ProxyTensor
+        if isinstance(x, ProxyTensor):
+            return x # Dropout is identity during tracing for simplicity
+            
         if not self.training or self.p <= 0.0:
             return x
         keep = 1.0 - self.p
@@ -265,3 +305,28 @@ def _flat_index(pos, shape):
         stride *= size
     strides = tuple(reversed(strides))
     return tuple((pos // stride) % size for stride, size in zip(strides, shape))
+
+
+class ReLU(Module):
+    def forward(self, x):
+        return x.relu()
+
+
+class CrossEntropyLoss(Module):
+    def forward(self, logits, targets):
+        return cross_entropy(logits, targets)
+
+
+class Pipeline(Module):
+    """
+    NEF2 Pipeline Engine.
+    Executes a chain of models without serialization, sharing a Tensor Bus.
+    Created using the >> operator: vision_model >> reasoning_model >> voice_model
+    """
+    def __init__(self, *models):
+        self.models = list(models)
+
+    def forward(self, x):
+        for model in self.models:
+            x = model(x)
+        return x

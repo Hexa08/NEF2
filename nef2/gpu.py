@@ -199,6 +199,92 @@ done_matmul:
     ret;
 }
 
+.visible .entry matmul_relu(.param .u64 a, .param .u64 b, .param .u64 out, .param .u32 batch, .param .u32 m, .param .u32 k, .param .u32 n, .param .u32 b_batched)
+{
+    .reg .pred %p;
+    .reg .b32 %r<21>;
+    .reg .b64 %rd<6>;
+    .reg .f32 %f<5>;
+
+    ld.param.u64 %rd1, [a];
+    ld.param.u64 %rd2, [b];
+    ld.param.u64 %rd3, [out];
+    ld.param.u32 %r4, [batch];
+    ld.param.u32 %r5, [m];
+    ld.param.u32 %r6, [k];
+    ld.param.u32 %r7, [n];
+    ld.param.u32 %r8, [b_batched];
+
+    mov.u32 %r1, %tid.x;
+    mov.u32 %r2, %ctaid.x;
+    mov.u32 %r3, %ntid.x;
+    mad.lo.s32 %r9, %r2, %r3, %r1;
+
+    mul.lo.s32 %r10, %r4, %r5;
+    mul.lo.s32 %r10, %r10, %r7;
+    setp.ge.u32 %p, %r9, %r10;
+    @%p bra done_matmul_relu;
+
+    mul.lo.s32 %r11, %r5, %r7;
+
+    div.u32 %r12, %r9, %r11;
+    rem.u32 %r13, %r9, %r11;
+
+    div.u32 %r14, %r13, %r7;
+    rem.u32 %r15, %r13, %r7;
+
+    mul.lo.s32 %r16, %r12, %r5;
+    mul.lo.s32 %r16, %r16, %r6;
+
+    setp.eq.u32 %p, %r8, 0;
+    @%p bra relu_b_unbatched;
+    mul.lo.s32 %r17, %r12, %r6;
+    mul.lo.s32 %r17, %r17, %r7;
+    bra relu_b_offset_done;
+relu_b_unbatched:
+    mov.u32 %r17, 0;
+relu_b_offset_done:
+
+    mul.lo.s32 %r18, %r12, %r11;
+
+    mov.f32 %f1, 0f00000000;
+    mov.u32 %r19, 0;
+
+relu_loop_kk:
+    setp.ge.u32 %p, %r19, %r6;
+    @%p bra relu_end_loop_kk;
+
+    mul.lo.s32 %r20, %r14, %r6;
+    add.s32 %r20, %r20, %r19;
+    add.s32 %r20, %r20, %r16;
+    mul.wide.u32 %rd4, %r20, 4;
+    add.s64 %rd5, %rd1, %rd4;
+    ld.global.f32 %f2, [%rd5];
+
+    mul.lo.s32 %r20, %r19, %r7;
+    add.s32 %r20, %r20, %r15;
+    add.s32 %r20, %r20, %r17;
+    mul.wide.u32 %rd4, %r20, 4;
+    add.s64 %rd5, %rd2, %rd4;
+    ld.global.f32 %f3, [%rd5];
+
+    fma.rn.f32 %f1, %f2, %f3, %f1;
+
+    add.u32 %r19, %r19, 1;
+    bra relu_loop_kk;
+
+relu_end_loop_kk:
+    add.s32 %r20, %r18, %r13;
+    mul.wide.u32 %rd4, %r20, 4;
+    add.s64 %rd5, %rd3, %rd4;
+    mov.f32 %f4, 0f00000000;
+    max.f32 %f1, %f1, %f4;
+    st.global.f32 [%rd5], %f1;
+
+done_matmul_relu:
+    ret;
+}
+
 .visible .entry layernorm_fwd(.param .u64 in_ptr, .param .u64 gamma_ptr, .param .u64 beta_ptr, .param .u64 out_ptr, .param .u32 n_rows, .param .u32 n_features, .param .f32 eps)
 {
     .reg .pred %p;
@@ -483,9 +569,17 @@ class UnsupportedGpuBackend(CudaError):
 
 def _load_cuda_lib():
     system = platform.system()
+    # Check bundled vendor directory first
+    vendor_dir = os.path.join(os.path.dirname(__file__), "vendor")
+    
     if system == "Windows":
+        bundled = os.path.join(vendor_dir, "nvcuda.dll")
+        if os.path.exists(bundled):
+            return ctypes.WinDLL(bundled)
         return ctypes.WinDLL("nvcuda.dll")
     elif system == "Linux":
+        # Note: libcublasLt and others are loaded dynamically by application logic
+        # Here we just ensure the core driver is accessible
         return ctypes.CDLL("libcuda.so.1")
     elif system == "Darwin":
         raise CudaError("macOS does not support CUDA. Use Metal backend (planned).")
@@ -861,6 +955,43 @@ class CudaTensor:
         grid = (total + block - 1) // block
         self._rt.launch(
             "matmul",
+            [
+                ("u64", self.ptr),
+                ("u64", other.ptr),
+                ("u64", out.ptr),
+                ("u32", batch_count),
+                ("u32", m),
+                ("u32", k),
+                ("u32", n),
+                ("u32", b_batched),
+            ],
+            total,
+        )
+        return out
+
+    def matmul_relu(self, other):
+        if not isinstance(other, CudaTensor):
+            other = CudaTensor(other, self.device)
+        if len(self.shape) < 2 or len(other.shape) < 2:
+            raise ValueError("matmul_relu expects rank >= 2")
+        batch_a = self.shape[:-2]
+        batch_b = other.shape[:-2]
+        if batch_b not in ((), batch_a):
+            raise ValueError("batched matmul shape mismatch")
+        m, k = self.shape[-2], self.shape[-1]
+        k2, n = other.shape[-2], other.shape[-1]
+        if k != k2:
+            raise ValueError("matmul inner dims mismatch: %s vs %s" % (k, k2))
+        out_batch = batch_a
+        out_shape = out_batch + (m, n)
+        out = CudaTensor.empty(out_shape, self.device)
+        batch_count = _prod(out_batch) if out_batch else 1
+        b_batched = 1 if batch_b else 0
+        total = batch_count * m * n
+        block = 256
+        grid = (total + block - 1) // block
+        self._rt.launch(
+            "matmul_relu",
             [
                 ("u64", self.ptr),
                 ("u64", other.ptr),

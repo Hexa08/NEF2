@@ -5,27 +5,46 @@ import { ArrowRight, Box, Cpu, Network, Zap, Settings, BookOpen } from "lucide-r
 import { motion } from "framer-motion";
 
 export default function DocsOverview() {
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.05,
+      },
+    },
+  };
+
+  const item: any = {
+    hidden: { opacity: 0, y: 10 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
+  };
+
+  const titleWords = "NEF2 Documentation".split(" ");
+
   return (
     <div className="relative mx-auto max-w-4xl px-8 py-16 lg:py-24">
-      {/* Subtle background glow */}
       <div className="pointer-events-none absolute inset-0 -z-10 flex items-start justify-center">
         <div className="h-[400px] w-[600px] rounded-full bg-indigo-500/10 opacity-50 blur-[100px]" />
       </div>
 
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
+        variants={container}
+        initial="hidden"
+        animate="show"
       >
-        <h1 className="text-4xl font-semibold tracking-tight text-zinc-50 sm:text-5xl">
-          NEF2 Documentation
+        <h1 className="flex flex-wrap gap-x-[0.3em] text-4xl font-semibold tracking-tight text-zinc-50 sm:text-5xl">
+          {titleWords.map((word, i) => (
+            <motion.span key={i} variants={item}>{word}</motion.span>
+          ))}
         </h1>
-        <p className="mt-4 text-lg text-zinc-400 max-w-2xl leading-relaxed">
+        
+        <motion.p variants={item} className="mt-4 text-lg text-zinc-400 max-w-2xl leading-relaxed">
           The next-generation AI model serialization and inference infrastructure framework.
           Built for zero-copy memory mapping, multi-GPU native execution, and extreme performance.
-        </p>
+        </motion.p>
 
-        <div className="mt-8 flex items-center gap-4">
+        <motion.div variants={item} className="mt-8 flex items-center gap-4">
           <Link
             href="/docs/getting-started"
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-zinc-50 px-4 py-2.5 text-sm font-medium text-zinc-950 transition-colors hover:bg-zinc-200"
@@ -39,13 +58,13 @@ export default function DocsOverview() {
           >
             Architecture Overview
           </Link>
-        </div>
+        </motion.div>
       </motion.div>
 
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
+        transition={{ duration: 0.4, delay: 0.3, ease: "easeOut" }}
         className="mt-20 grid grid-cols-1 gap-6 sm:grid-cols-2"
       >
         <FeatureCard

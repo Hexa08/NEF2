@@ -1,5 +1,10 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Search, Hexagon, Moon, Sun } from "lucide-react";
+import { Search, Hexagon, Menu, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import SearchModal from "./SearchModal";
 
 const GithubIcon = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
@@ -8,48 +13,106 @@ const GithubIcon = ({ className }: { className?: string }) => (
 );
 
 export default function Navbar() {
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setIsSearchOpen(true);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   return (
-    <header className="sticky top-0 z-50 flex h-14 w-full items-center border-b border-zinc-800 bg-background/80 px-4 backdrop-blur-sm sm:px-6 lg:px-8">
-      <div className="flex w-full items-center justify-between">
-        {/* Left: Logo */}
-        <div className="flex items-center gap-3">
-          <Link href="/docs" className="flex items-center gap-2 transition-opacity hover:opacity-80">
-            <Hexagon className="h-6 w-6 text-indigo-500" fill="currentColor" />
-            <span className="font-semibold text-zinc-50 tracking-tight text-lg">NEF2</span>
-          </Link>
-        </div>
-
-        {/* Center: Search */}
-        <div className="hidden max-w-md flex-1 px-4 sm:block">
-          <button className="flex w-full items-center gap-2 rounded-full border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-background">
-            <Search className="h-4 w-4" />
-            <span className="flex-1 text-left">Search docs...</span>
-            <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border border-zinc-800 bg-zinc-950 px-1.5 font-mono text-[10px] font-medium text-zinc-500 sm:flex">
-              <span className="text-xs">⌘</span>K
-            </kbd>
-          </button>
-        </div>
-
-        {/* Right: Actions */}
-        <div className="flex items-center gap-4">
-          <div className="hidden items-center rounded-full border border-zinc-800 bg-zinc-900 px-2.5 py-0.5 text-xs font-medium text-zinc-400 sm:flex">
-            v2.0
+    <>
+      <header className="sticky top-0 z-50 flex h-14 w-full items-center border-b border-zinc-800 bg-background/80 px-4 backdrop-blur-sm sm:px-6 lg:px-8">
+        <div className="flex w-full items-center justify-between">
+          {/* Left: Logo */}
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="mr-2 rounded-md p-1.5 text-zinc-400 hover:bg-zinc-800 lg:hidden"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <Link href="/docs" className="flex items-center gap-2 transition-opacity hover:opacity-80">
+              <Hexagon className="h-6 w-6 text-indigo-500" fill="currentColor" />
+              <span className="font-semibold text-zinc-50 tracking-tight text-lg">NEF2</span>
+            </Link>
           </div>
-          <Link href="https://github.com/Hexa08/NEF2" target="_blank" className="text-zinc-400 transition-colors hover:text-zinc-100">
-            <GithubIcon className="h-5 w-5" />
-          </Link>
-          <ThemeToggle />
+
+          {/* Center: Search */}
+          <div className="hidden max-w-md flex-1 px-4 sm:block">
+            <button 
+              onClick={() => setIsSearchOpen(true)}
+              className="flex w-full items-center gap-2 rounded-full border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-background"
+            >
+              <Search className="h-4 w-4" />
+              <span className="flex-1 text-left">Search docs...</span>
+              <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border border-zinc-800 bg-zinc-950 px-1.5 font-mono text-[10px] font-medium text-zinc-500 sm:flex">
+                <span className="text-xs">⌘</span>K
+              </kbd>
+            </button>
+          </div>
+
+          {/* Right: Actions */}
+          <div className="flex items-center gap-4">
+            <div className="hidden items-center rounded-full border border-zinc-800 bg-zinc-900 px-2.5 py-0.5 text-xs font-medium text-zinc-400 sm:flex">
+              v2.0
+            </div>
+            <Link href="https://github.com/Hexa08/NEF2" target="_blank" className="text-zinc-400 transition-colors hover:text-zinc-100">
+              <GithubIcon className="h-5 w-5" />
+            </Link>
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      
+      {/* Mobile Drawer Placeholder - Linked to parent layout toggle */}
+      <MobileDrawer isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+    </>
   );
 }
 
-function ThemeToggle() {
-  // Static toggle for now, assumes dark mode defaults and focuses on layout
+function MobileDrawer({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
+  // Mobile drawer logic would usually go here, for now it's a simple overlay
   return (
-    <button className="text-zinc-400 transition-colors hover:text-zinc-100 focus:outline-none">
-      <Moon className="h-5 w-5" />
-    </button>
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[110] lg:hidden">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-zinc-950/60 backdrop-blur-sm"
+          />
+          <motion.div
+            initial={{ x: "-100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "-100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            className="fixed bottom-0 left-0 top-0 w-full max-w-xs border-r border-zinc-800 bg-zinc-950 p-6 shadow-xl"
+          >
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-2">
+                <Hexagon className="h-6 w-6 text-indigo-500" fill="currentColor" />
+                <span className="font-bold text-zinc-50">NEF2</span>
+              </div>
+              <button onClick={onClose} className="rounded-md p-1.5 text-zinc-400 hover:bg-zinc-800">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            {/* Mobile Nav contents would mirror Sidebar */}
+            <div className="text-sm text-zinc-400">Mobile navigation content...</div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   );
 }

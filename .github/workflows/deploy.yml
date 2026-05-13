@@ -6,7 +6,6 @@ on:
       - main
     paths:
       - 'docs-site/**'
-      - 'docs/**'
 
 permissions:
   contents: write

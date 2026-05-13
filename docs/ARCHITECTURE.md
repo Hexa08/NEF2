@@ -4,15 +4,23 @@ NEF2 is structured as a multi-layered infrastructure stack designed to bypass th
 
 ## 1. NEFCore Runtime
 The "heart" of the system. NEFCore manages the lifecycle of tensors and execution graphs.
-- **Python Layer:** Provides the user-facing API and high-level logic.
-- **C++ Layer:** Handles heavy matrix operations and performance-critical dispatch.
-- **Rust Layer:** Manages safe concurrency, distributed networking, and plugin sandboxing.
+- **Python Layer**: Provides the user-facing API and high-level logic.
+- **C++ Layer**: Handles heavy matrix operations and performance-critical dispatch.
+- **Rust Layer**: Manages safe concurrency, distributed networking, and plugin sandboxing.
 
-## 2. Hardware Native Stack (NEF-HNS)
-Unlike frameworks that depend on thick layers like PyTorch or JAX, NEF2 talks directly to hardware APIs.
-- **CUDA Backend:** Loads the `nvcuda` driver and executes raw **PTX Kernels**.
-- **HIP/ROCm Backend (Planned):** Native support for AMD accelerators.
-- **Metal Backend (Planned):** Native support for Apple Silicon.
+## 2. NEF Device Abstraction Layer (DAL)
+To support multi-vendor hardware without code duplication, NEF2 implements a unified Device Abstraction Layer. This layer exposes standard primitives (`TensorOps`, `MemoryOps`, `KernelLaunch`) that are implemented by vendor-specific backends.
+
+### Internal Backend Structure:
+```text
+nef2/
+ └── backend/
+      ├── cuda/      # NVIDIA implementation
+      ├── hip/       # AMD implementation
+      ├── metal/     # Apple implementation
+      ├── sycl/      # Intel implementation
+      └── vulkan/    # Portable/Mobile implementation
+```
 
 ## 3. HyperCache Memory Architecture
 NEF2 implements a hierarchical memory system to support massive models on limited hardware.

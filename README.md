@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="./assets/logo_no_bg.png" alt="NEF2 Logo" width="250">
+  <img src="./assets/nef2-logo.png" alt="NEF2 Logo" width="250">
   <h1>NEF2: The AI Operating Infrastructure</h1>
   <p><strong>A hardware-native, unified multi-backend intelligence stack for distributed AI execution.</strong></p>
 

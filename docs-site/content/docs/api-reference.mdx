@@ -1,0 +1,35 @@
+# API Reference
+
+This section covers the core HTTP/RPC APIs for the NEF2 model server daemon.
+
+## Model Management
+
+<ApiBlock 
+  method="POST" 
+  endpoint="/v1/models/load" 
+  description="Loads a model into the runtime memory of the cluster." 
+/>
+
+### Parameters
+
+| Name | Type | Description | Required |
+|---|---|---|---|
+| `model_path` | `string` | Absolute path to the `.nef2` file. | Yes |
+| `device` | `string` | Target device (e.g., `cuda:0`, `auto`). | No (default: `auto`) |
+| `mmap` | `boolean` | Enable zero-copy memory mapping. | No (default: `true`) |
+
+---
+
+<ApiBlock 
+  method="GET" 
+  endpoint="/v1/models/{model_id}/status" 
+  description="Retrieves the current memory usage and backend status for a loaded model." 
+/>
+
+---
+
+<ApiBlock 
+  method="DELETE" 
+  endpoint="/v1/models/{model_id}" 
+  description="Unloads the model and frees all associated VRAM." 
+/>

@@ -1,0 +1,31 @@
+# Runtime Engine
+
+The NEF2 Runtime is a lightweight, asynchronous execution environment written in Rust. It manages the lifecycle of models, tensor allocations, and execution streams.
+
+## Lazy Execution
+
+NEF2 utilizes a lazy execution graph. Operations are not computed immediately. Instead, they are recorded into an IR (Intermediate Representation) graph and executed only when the data is explicitly requested.
+
+```python language-python
+a = nef2.Tensor.ones((1024, 1024))
+b = nef2.Tensor.ones((1024, 1024))
+
+# This operation is queued, not executed.
+c = nef2.matmul(a, b)
+
+# The graph is compiled and executed here.
+print(c.numpy()) 
+```
+
+## Memory Management
+
+The runtime incorporates **HyperCache**, an intelligent paging system that seamlessly moves tensors between:
+
+1. GPU VRAM (L0)
+2. System RAM (L1)
+3. NVMe Storage (L2)
+
+<Callout type="tip" title="HyperCache Tuning">
+  You can limit the maximum VRAM usage during model loading to force the runtime to utilize L1/L2 cache.
+  `nef2.set_vram_limit("16GB")`
+</Callout>

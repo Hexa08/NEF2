@@ -1,0 +1,57 @@
+# Getting Started
+
+Welcome to the NEF2 (Neural Essence Format 2) framework. This guide will walk you through installing the core libraries and running your first model.
+
+## Installation
+
+NEF2 provides native packages for Python, Rust, and C++.
+
+### Python (Recommended)
+
+Install the pre-built wheels via pip. Ensure your environment has CUDA 12.1+ if you intend to use the NVIDIA backend.
+
+```bash language-bash
+pip install nef2
+```
+
+### Rust Cargo
+
+Add the following to your `Cargo.toml`:
+
+```toml language-toml
+[dependencies]
+nef2 = "2.0.0"
+```
+
+## Your First Model
+
+NEF2 allows you to serialize and execute models with zero-copy memory mapping. Let's load a pre-trained model and run an inference pass.
+
+```python language-python
+import nef2
+
+# Load the model directly into memory-mapped VRAM
+model = nef2.load("model.nef2", device="cuda:0", mmap=True)
+
+# Create an input tensor
+input_tensor = nef2.Tensor.randn((1, 512), dtype=nef2.float16)
+
+# Execute the forward pass
+output = model.forward(input_tensor)
+
+print(output.shape)
+```
+
+<Callout type="tip" title="Zero-Copy Execution">
+  By setting `mmap=True`, NEF2 bypasses CPU RAM entirely, mapping the weights directly from NVMe storage to the GPU.
+</Callout>
+
+## Verifying GPU Backends
+
+To ensure NEF2 has correctly detected your hardware accelerators:
+
+```bash language-bash
+nef2-cli sysinfo
+```
+
+You should see output detailing your available devices, PCIe bandwidth, and NVLink topology.

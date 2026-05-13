@@ -1,103 +1,99 @@
 import type { Config } from "tailwindcss";
+import defaultTheme from "tailwindcss/defaultTheme";
+import colors from "tailwindcss/colors";
 
 const config: Config = {
+  darkMode: "class",
   content: [
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./content/**/*.{md,mdx}",
   ],
-  darkMode: 'class',
   theme: {
+    container: {
+      center: true,
+      padding: "2rem",
+      screens: {
+        "2xl": "1400px",
+      },
+    },
     extend: {
       colors: {
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
-        card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
+        background: "#09090B",
+        surface: "#111113",
+        border: "#1F1F23",
+        zinc: {
+          50: '#fafafa',
+          100: '#f4f4f5',
+          200: '#e4e4e7',
+          300: '#d4d4d8',
+          400: '#a1a1aa',
+          500: '#71717a',
+          600: '#52525b',
+          700: '#3f3f46',
+          800: '#27272a',
+          900: '#18181b',
+          950: '#09090b',
         },
-        popover: {
-          DEFAULT: "hsl(var(--popover))",
-          foreground: "hsl(var(--popover-foreground))",
+        indigo: {
+          ...colors.indigo,
+          400: '#818cf8',
+          500: '#6366f1',
         },
-        primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
-        },
-        secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
-        },
-        muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
-        },
-        accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
-        },
-        destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
-        },
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-      },
-      borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
-        'xl': '1.25rem',
-        '2xl': '1.5rem',
-        '3xl': '2rem',
       },
       fontFamily: {
-        sans: ["var(--font-geist-sans)", "Inter", "sans-serif"],
-        mono: ["var(--font-geist-mono)", "monospace"],
+        sans: ["var(--font-geist-sans)", ...defaultTheme.fontFamily.sans],
+        mono: ["var(--font-geist-mono)", ...defaultTheme.fontFamily.mono],
       },
       animation: {
-        "fade-in": "fade-in 0.5s ease-out",
-        "reveal": "reveal 0.8s cubic-bezier(0.16, 1, 0.3, 1)",
-        "glow": "glow 4s ease-in-out infinite",
+        "fade-in": "fade-in 0.3s ease-out forwards",
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
       },
       keyframes: {
         "fade-in": {
-          "0%": { opacity: "0", transform: "translateY(10px)" },
+          "0%": { opacity: "0", transform: "translateY(8px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
-        "reveal": {
-          "0%": { opacity: "0", filter: "blur(10px)", transform: "scale(0.95)" },
-          "100%": { opacity: "1", filter: "blur(0)", transform: "scale(1)" },
+        "accordion-down": {
+          from: { height: "0", opacity: "0" },
+          to: { height: "var(--radix-accordion-content-height)", opacity: "1" },
         },
-        "glow": {
-          "0%, 100%": { opacity: "1" },
-          "50%": { opacity: "0.5" },
+        "accordion-up": {
+          from: { height: "var(--radix-accordion-content-height)", opacity: "1" },
+          to: { height: "0", opacity: "0" },
         },
       },
       typography: {
         DEFAULT: {
           css: {
-            maxWidth: '100ch',
-            color: 'inherit',
+            '--tw-prose-body': '#d4d4d8',
+            '--tw-prose-headings': '#fafafa',
+            '--tw-prose-links': '#818cf8',
+            '--tw-prose-bold': '#fafafa',
+            '--tw-prose-counters': '#71717a',
+            '--tw-prose-bullets': '#71717a',
+            '--tw-prose-hr': '#1F1F23',
+            '--tw-prose-quotes': '#a1a1aa',
+            '--tw-prose-quote-borders': '#6366f1',
+            '--tw-prose-captions': '#71717a',
+            '--tw-prose-code': '#fafafa',
+            '--tw-prose-pre-code': '#fafafa',
+            '--tw-prose-pre-bg': '#18181b',
+            '--tw-prose-th-borders': '#27272a',
+            '--tw-prose-td-borders': '#27272a',
             a: {
-              color: 'hsl(var(--primary))',
+              textDecoration: 'none',
+              fontWeight: '500',
               '&:hover': {
-                color: 'hsl(var(--primary))',
-                opacity: 0.8,
+                color: '#a5b4fc',
               },
             },
-            h1: { color: 'white' },
-            h2: { color: 'white' },
-            h3: { color: 'white' },
-            h4: { color: 'white' },
-            code: { color: 'hsl(var(--primary))' },
-            'code::before': { content: 'none' },
-            'code::after': { content: 'none' },
           },
         },
       },
     },
   },
-  plugins: [require("@tailwindcss/typography")],
+  plugins: [require("@tailwindcss/typography"), require("tailwindcss-animate")],
 };
 export default config;

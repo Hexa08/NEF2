@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="./logo_no_bg.png" alt="NEF2 Logo" width="250">
+  <img src="./assets/logo_no_bg.png" alt="NEF2 Logo" width="250">
   <h1>NEF2: The AI Operating Infrastructure</h1>
   <p><strong>A hardware-native, unified multi-backend intelligence stack for distributed AI execution.</strong></p>
 
@@ -67,7 +67,7 @@ For deep dives into specific areas of the NEF2 ecosystem:
 pip install nef2
 
 # For GPU-accelerated wheels (CUDA 12.1+):
-pip install nef2 --extra-index-url https://hexainnovateorg.github.io/whl/
+pip install nef2 --extra-index-url https://Hexa08.github.io/whl/
 ```
 
 ### Hardware-Native Tensors

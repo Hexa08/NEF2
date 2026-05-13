@@ -18,7 +18,7 @@ pip install nef2
 ### From Custom Index (Hardware-Accelerated)
 For full GPU support (CUDA, ROCm, etc.), use the custom wheel index:
 ```bash
-pip install nef2 --extra-index-url https://hexainnovateorg.github.io/whl/
+pip install nef2 --extra-index-url https://Hexa08.github.io/whl/
 ```
 
 ### From Source (Development Mode)

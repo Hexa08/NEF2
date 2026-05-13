@@ -14,16 +14,27 @@ def _detect_backend():
     """Auto-detect the best available hardware backend."""
     # 1. Check for NVIDIA CUDA
     try:
-        from .cuda.runtime import CudaRuntime
-        # Simple probe
-        rt = CudaRuntime()
-        if rt.count.value > 0:
+        from .cuda.runtime import cuda_available
+        if cuda_available():
             return importlib.import_module(".cuda", __package__)
     except Exception:
         pass
 
-    # 2. Check for AMD HIP (Placeholder)
-    # 3. Check for Apple Metal (Placeholder)
+    # 2. Check for AMD HIP
+    try:
+        from .hip.runtime import hip_available
+        if hip_available():
+            return importlib.import_module(".hip", __package__)
+    except Exception:
+        pass
+
+    # 3. Check for Apple Metal
+    try:
+        from .metal.runtime import metal_available
+        if metal_available():
+            return importlib.import_module(".metal", __package__)
+    except Exception:
+        pass
     
     return None
 

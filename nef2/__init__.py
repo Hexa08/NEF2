@@ -1,4 +1,4 @@
-from .tensor import Tensor, no_grad
+from .tensor import Tensor, no_grad, tensor, randn, matmul
 from .nn import (
     Module,
     Parameter,

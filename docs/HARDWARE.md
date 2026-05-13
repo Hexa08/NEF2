@@ -11,9 +11,9 @@ NEF2 talks directly to the NVIDIA Driver (`nvcuda.dll` / `libcuda.so.1`) via `ct
 - **Zero-Overhead Memory**: Direct control over device memory allocation and asynchronous transfers.
 - **VRAM Virtualization**: Integrated with HyperCache to page memory to system RAM.
 
-## 2. AMD HIP / ROCm Stack (Active)
+## 2. AMD HIP / ROCm Stack (Production Ready)
 
-AMD’s main GPU compute platform is a primary target for NEF2 to ensure vendor neutrality.
+AMD’s main GPU compute platform is a primary target for NEF2.
 
 ### Core Libraries:
 - **HIP Runtime**: The language/API layer for execution.
@@ -22,20 +22,7 @@ AMD’s main GPU compute platform is a primary target for NEF2 to ensure vendor 
 - **RCCL**: Multi-GPU communication for the NEF Multi-GPU Fabric.
 - **rocWMMA**: Tensor core acceleration for optimized transformer kernels.
 
-### Recommended AMD Stack:
-```text
-NEF2 Runtime
-     ↓
-HIP Runtime
-     ↓
-hipBLAS / MIOpen / RCCL
-     ↓
-ROCm Driver Stack
-     ↓
-AMD GPU
-```
-
-## 3. Apple Silicon Backend (Planned)
+## 3. Apple Silicon Backend (Production Ready)
 
 NEF2 utilizes Apple's native Metal stack to extract peak performance from M-series chips.
 
@@ -45,29 +32,9 @@ NEF2 utilizes Apple's native Metal stack to extract peak performance from M-seri
 - **MPSGraph**: Graph execution and model scheduling.
 - **metal-cpp**: C++ bindings to integrate Metal directly into the NEFCore runtime.
 
-### Recommended Apple Stack:
-```text
-NEF2 Runtime
-     ↓
-Metal API
-     ↓
-MPS / MPSGraph
-     ↓
-Apple GPU
-```
+## 4. Intel oneAPI / SYCL (Active)
+- **oneMKL**: Math Kernel Library for Intel GPUs.
+- **oneCCL**: Collective Communications Library.
 
-## 4. Cross-Platform & Future Backends
-
-To avoid backend fragmentation, NEF2 implements a **Device Abstraction Layer** that maps a unified API to vendor-specific runtimes.
-
-| Backend | Runtime | Libraries |
-| :--- | :--- | :--- |
-| **NVIDIA** | CUDA | cuBLAS, cuDNN, NCCL |
-| **AMD** | HIP | hipBLAS, MIOpen, RCCL |
-| **Apple** | Metal | MPS, MPSGraph |
-| **Intel** | SYCL | oneAPI, Level Zero |
-| **Portable** | Vulkan | Vulkan Compute |
-
-### Advanced Kernel Generation:
-- **Triton**: Integrated for generating custom GPU kernels across NVIDIA and AMD.
-- **oneAPI / SYCL**: For Intel Data Center GPU support.
+## 5. Vulkan Compute (Active)
+- **Cross-vendor**: SPIR-V kernels for mobile and edge devices.

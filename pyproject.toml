@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nef2"
-version = "0.2.2"
-description = "A tiny NEF2-owned neural network and LLM training framework with a pure-Python CPU core and CUDA driver backend."
+version = "0.2.3"
+description = "NEF2: Unified Multi-Backend AI Runtime. Use --extra-index-url for GPU-accelerated wheels."
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.8"

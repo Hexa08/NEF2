@@ -1,7 +1,7 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/Hexa08/NEF2/main/assets/logo.png" alt="NEF2 Logo" width="200">
-  <h1>NEF2: The AI Operating Substrate</h1>
-  <p><strong>A hardware-native, framework-independent intelligence stack for the next generation of autonomous systems.</strong></p>
+  <img src="./logo_no_bg.png" alt="NEF2 Logo" width="250">
+  <h1>NEF2: The AI Operating Infrastructure</h1>
+  <p><strong>A hardware-native, unified multi-backend intelligence stack for distributed AI execution.</strong></p>
 
   <div>
     <a href="https://pypi.org/project/nef2/"><img src="https://img.shields.io/pypi/v/nef2.svg?style=flat-square&color=0f766e" alt="PyPI"></a>
@@ -63,7 +63,11 @@ For deep dives into specific areas of the NEF2 ecosystem:
 ### Installation
 
 ```bash
+# Standard install (CPU & Core logic)
 pip install nef2
+
+# For GPU-accelerated wheels (CUDA 12.1+):
+pip install nef2 --extra-index-url https://hexainnovateorg.github.io/whl/
 ```
 
 ### Hardware-Native Tensors

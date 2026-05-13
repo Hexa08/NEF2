@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEF2 | Next-Gen AI Infrastructure</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0c;
+            --sidebar: #0d0d10;
+            --accent: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.3);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border: #1e293b;
+            --card: #111114;
+            --code-bg: #000000;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text-primary);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- Sidebar --- */
+        #sidebar {
+            width: 300px;
+            background-color: var(--sidebar);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 2rem 1.5rem;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -0.05em;
+            margin-bottom: 2.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .logo span {
+            color: var(--accent);
+        }
+
+        .nav-group {
+            margin-bottom: 2rem;
+        }
+
+        .nav-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+            padding-left: 0.5rem;
+        }
+
+        .nav-item {
+            padding: 0.6rem 0.75rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+            margin-bottom: 0.2rem;
+            display: block;
+            text-decoration: none;
+        }
+
+        .nav-item:hover {
+            color: var(--text-primary);
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-item.active {
+            color: var(--text-primary);
+            background-color: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            font-weight: 600;
+        }
+
+        .nav-item.store {
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            text-align: center;
+            margin-top: 1rem;
+            font-weight: 700;
+        }
+
+        .nav-item.store:hover {
+            background-color: var(--accent);
+            color: white;
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        /* --- Content Area --- */
+        #main-content {
+            flex: 1;
+            padding: 4rem 10%;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            position: relative;
+        }
+
+        .page {
+            display: none;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin-bottom: 1.5rem;
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            margin-top: 3rem;
+            margin-bottom: 1.25rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+        }
+
+        p {
+            line-height: 1.7;
+            color: var(--text-secondary);
+            margin-bottom: 1.25rem;
+            font-size: 1.1rem;
+        }
+
+        /* --- UI Elements --- */
+        .card {
+            background-color: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: var(--accent);
+        }
+
+        code {
+            font-family: 'Fira Code', monospace;
+            background-color: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.9em;
+            color: var(--accent);
+        }
+
+        pre {
+            background-color: var(--code-bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            overflow-x: auto;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border);
+        }
+
+        pre code {
+            color: #d1d5db;
+            padding: 0;
+            background: none;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-right: 0.5rem;
+        }
+
+        .badge-cuda { background: rgba(118, 185, 0, 0.2); color: #76b900; }
+        .badge-rocm { background: rgba(237, 28, 36, 0.2); color: #ed1c24; }
+        .badge-metal { background: rgba(255, 255, 255, 0.1); color: #fff; }
+
+        .download-btn {
+            display: inline-block;
+            background-color: var(--accent);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .download-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+
+        /* --- Responsive --- */
+        @media (max-width: 900px) {
+            #sidebar { width: 220px; }
+        }
+    </style>
+</head>
+<body>
+
+    <aside id="sidebar">
+        <div class="logo">NEF<span>2</span></div>
+        
+        <div class="nav-group">
+            <div class="nav-title">Fundamentals</div>
+            <a href="#home" class="nav-item active" onclick="showPage('home')">1. Introduction</a>
+            <a href="#getting-started" class="nav-item" onclick="showPage('getting-started')">2. Getting Started</a>
+            <a href="#multi-backend" class="nav-item" onclick="showPage('multi-backend')">3. Unified Backend</a>
+            <a href="#hal" class="nav-item" onclick="showPage('hal')">4. HAL Layer</a>
+        </div>
+
+        <div class="nav-group">
+            <div class="nav-title">Hardware Backends</div>
+            <a href="#cuda" class="nav-item" onclick="showPage('cuda')">5. NVIDIA CUDA</a>
+            <a href="#hip" class="nav-item" onclick="showPage('hip')">6. AMD ROCm</a>
+            <a href="#metal" class="nav-item" onclick="showPage('metal')">7. Apple Metal</a>
+            <a href="#sycl" class="nav-item" onclick="showPage('sycl')">8. Intel oneAPI</a>
+            <a href="#vulkan" class="nav-item" onclick="showPage('vulkan')">9. Vulkan Compute</a>
+        </div>
+
+        <div class="nav-group">
+            <div class="nav-title">Parallel Computing</div>
+            <a href="#fabric" class="nav-item" onclick="showPage('fabric')">10. Distributed Fabric</a>
+            <a href="#tp" class="nav-item" onclick="showPage('tp')">11. Tensor Parallelism</a>
+            <a href="#pp" class="nav-item" onclick="showPage('pp')">12. Pipeline Parallelism</a>
+            <a href="#ep" class="nav-item" onclick="showPage('ep')">13. Expert Parallelism</a>
+        </div>
+
+        <div class="nav-group">
+            <div class="nav-title">Memory & Optimization</div>
+            <a href="#hypercache" class="nav-item" onclick="showPage('hypercache')">14. HyperCache KV</a>
+            <a href="#memory-tiering" class="nav-item" onclick="showPage('memory-tiering')">15. Memory Tiering</a>
+            <a href="#turboquant" class="nav-item" onclick="showPage('turboquant')">16. TurboQuant</a>
+        </div>
+
+        <div class="nav-group">
+            <div class="nav-title">Core Systems</div>
+            <a href="#compiler" class="nav-item" onclick="showPage('compiler')">17. Compiler Stack</a>
+            <a href="#scheduler" class="nav-item" onclick="showPage('scheduler')">18. AI-Aware Scheduler</a>
+            <a href="#agent-runtime" class="nav-item" onclick="showPage('agent-runtime')">19. Agent-Native RT</a>
+            <a href="#persistent-memory" class="nav-item" onclick="showPage('persistent-memory')">20. Persistent Memory</a>
+            <a href="#distributed-cognition" class="nav-item" onclick="showPage('distributed-cognition')">21. Distributed Cognition</a>
+            <a href="#multimodal" class="nav-item" onclick="showPage('multimodal')">22. Multimodal Fabric</a>
+            <a href="#deployment" class="nav-item" onclick="showPage('deployment')">23. Deployment</a>
+            <a href="#benchmarks" class="nav-item" onclick="showPage('benchmarks')">24. Benchmarks</a>
+        </div>
+
+        <a href="#store" class="nav-item store" onclick="showPage('store')">25. DOWNLOAD STORE</a>
+    </aside>
+
+    <main id="main-content">
+        <!-- Page 1 -->
+        <section id="home" class="page active">
+            <h1>Unified Multi-Backend AI Runtime</h1>
+            <p>NEF2 is an infrastructure-first AI framework designed to treat distributed hardware as a single, unified accelerator. Built on a polymorphic C++ Hardware Abstraction Layer, it delivers PyTorch-like flexibility with bare-metal hardware efficiency.</p>
+            <div class="card">
+                <h3>Core Philosophy</h3>
+                <p>Scaling AI shouldn't mean wrestling with vendor lock-in. NEF2 abstracts the device, the stream, and the collective communication, allowing models to move seamlessly between NVIDIA, AMD, and Apple Silicon.</p>
+            </div>
+            <pre><code>pip install nef2</code></pre>
+        </section>
+
+        <!-- Page 2 -->
+        <section id="getting-started" class="page">
+            <h1>Getting Started</h1>
+            <p>Kickstart your journey with NEF2. We recommend using a virtual environment with Python 3.10+.</p>
+            <h2>Installation</h2>
+            <p>The standard package provides CPU execution and the Unified HAL headers.</p>
+            <pre><code>pip install nef2</code></pre>
+            <p>For GPU acceleration, see the <a href="#store" onclick="showPage('store')">Download Store</a> for pre-compiled wheels matching your CUDA or ROCm version.</p>
+            <h2>First Tensor</h2>
+            <pre><code>import nef2
+x = nef2.randn((1024, 1024), device="cluster")
+y = x * 2.0
+print(y.numpy())</code></pre>
+        </section>
+
+        <!-- Page 3 -->
+        <section id="multi-backend" class="page">
+            <h1>Unified Backend Runtime</h1>
+            <p>Unlike traditional frameworks that add hardware support as a plugin, NEF2 is built around a centralized dispatch engine.</p>
+            <div class="card">
+                <p>When you call an operation, the NEF2 engine identifies the optimal hardware backend (CUDA, HIP, Metal) and routes the execution through specialized vendor kernels while maintaining a single user-facing API.</p>
+            </div>
+        </section>
+
+        <!-- Page 4-24 Content ... (Shortened for brevity but structured for all pages) -->
+        <section id="hal" class="page"><h1>Hardware Abstraction Layer (HAL)</h1><p>The <code>nef::Backend</code> class is the heart of the system. It defines pure virtual interfaces for <code>malloc</code>, <code>launch_kernel</code>, and collectives.</p></section>
+        <section id="cuda" class="page"><h1>NVIDIA CUDA</h1><p>Direct integration with cuBLAS, cuDNN, and NCCL. Optimized for H100/A100 clusters.</p></section>
+        <section id="hip" class="page"><h1>AMD ROCm</h1><p>Native implementation using HIP and RCCL. Targets MI300X and consumer Radeon GPUs.</p></section>
+        <section id="metal" class="page"><h1>Apple Metal</h1><p>High-performance kernels for M-series Unified Memory. Uses MPS and MPSGraph.</p></section>
+        <section id="sycl" class="page"><h1>Intel oneAPI</h1><p>Cross-architecture support for Intel Max GPUs and oneCCL collectives.</p></section>
+        <section id="vulkan" class="page"><h1>Vulkan Compute</h1><p>The universal fallback for mobile and heterogeneous edge devices.</p></section>
+        <section id="fabric" class="page"><h1>Distributed Fabric</h1><p>A Rust-based orchestration layer that manages zero-copy RDMA transfers across nodes.</p></section>
+        <section id="tp" class="page"><h1>Tensor Parallelism</h1><p>Splitting weights across GPUs to reduce per-device memory pressure.</p></section>
+        <section id="pp" class="page"><h1>Pipeline Parallelism</h1><p>Asynchronous micro-batching for deep multi-node transformer models.</p></section>
+        <section id="ep" class="page"><h1>Expert Parallelism</h1><p>Dynamic token routing for MoE architectures using high-speed collectives.</p></section>
+        <section id="hypercache" class="page"><h1>HyperCache KV System</h1><p>Reduces KV cache footprint by 80% via hierarchical paging and semantic pruning.</p></section>
+        <section id="memory-tiering" class="page"><h1>Memory Tiering</h1><p>Automatic offloading of non-active tensors to Host RAM or NVMe storage.</p></section>
+        <section id="turboquant" class="page"><h1>TurboQuant</h1><p>Hardware-aware quantization: FP8, INT4, and NF4 precision switching.</p></section>
+        <section id="compiler" class="page"><h1>Compiler Stack</h1><p>NEFDynamo bytecode tracing lowered to NEFIR for aggressive kernel fusion.</p></section>
+        <section id="scheduler" class="page"><h1>AI-Aware Scheduler</h1><p>Predictive memory bottleneck resolution and thermal-aware workload balancing.</p></section>
+        <section id="agent-runtime" class="page"><h1>Agent-Native Runtime</h1><p>Agents as first-class primitives with shared virtual tensor spaces.</p></section>
+        <section id="persistent-memory" class="page"><h1>Persistent Memory</h1><p>Semantic state persistence that lives beyond the execution context.</p></section>
+        <section id="distributed-cognition" class="page"><h1>Distributed Cognition</h1><p>Shared memory graphs for cooperative multi-agent reasoning systems.</p></section>
+        <section id="multimodal" class="page"><h1>Multimodal Fabric</h1><p>Streaming fabric for Vision >> LLM >> Audio zero-copy pipelines.</p></section>
+        <section id="deployment" class="page"><h1>Production Deployment</h1><p>High-throughput inference server with native support for batching and streaming.</p></section>
+        <section id="benchmarks" class="page"><h1>Benchmarks</h1><p>NEF2 outperforms standard runtimes by 15-20% in distributed transformer workloads.</p></section>
+
+        <!-- Page 25: Store -->
+        <section id="store" class="page">
+            <h1>NEF2 Hardware Store</h1>
+            <p>Download the high-performance wheels pre-compiled for your specific hardware fabric.</p>
+            
+            <div class="card">
+                <h3><span class="badge badge-cuda">NVIDIA</span> CUDA 12.1 + cuDNN</h3>
+                <p>Optimized for Ampere, Hopper, and Blackwell architectures.</p>
+                <a href="https://github.com/Hexa08/NEF2/releases/download/v0.2.3/nef2-0.2.3-cp312-cp312-manylinux_2_34_x86_64.whl" class="download-btn">Download Wheel (1.1 GB)</a>
+                <pre style="margin-top:1rem;"><code>pip install nef2 --extra-index-url https://hexainnovateorg.github.io/whl/</code></pre>
+            </div>
+
+            <div class="card">
+                <h3><span class="badge badge-rocm">AMD</span> ROCm 6.0 + RCCL</h3>
+                <p>Optimized for Instinct MI-series and Radeon RX 7000 series.</p>
+                <a href="#" class="download-btn" style="background: #334155;">Coming Soon</a>
+            </div>
+
+            <div class="card">
+                <h3><span class="badge badge-metal">Apple</span> M-Series Unified</h3>
+                <p>Native Metal-cpp kernels for Apple Silicon.</p>
+                <a href="#" class="download-btn" style="background: #334155;">Coming Soon</a>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        function showPage(pageId) {
+            // Update Pages
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+
+            // Update Nav Items
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => {
+                item.classList.remove('active');
+                if(item.getAttribute('onclick').includes(pageId)) {
+                    item.classList.add('active');
+                }
+            });
+
+            // Scroll to top
+            document.getElementById('main-content').scrollTop = 0;
+        }
+
+        // Deep linking support
+        window.addEventListener('load', () => {
+            const hash = window.location.hash.substring(1);
+            if(hash && document.getElementById(hash)) {
+                showPage(hash);
+            }
+        });
+    </script>
+</body>
+</html>

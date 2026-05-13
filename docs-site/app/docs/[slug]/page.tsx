@@ -27,7 +27,7 @@ export default async function DocPage({ params }: { params: { slug: string } }) 
   const source = fs.readFileSync(filePath, "utf8");
 
   return (
-    <div className="space-y-6">
+    <div className="pb-20">
       <MDXRemote 
         source={source} 
         components={MDXComponents} 

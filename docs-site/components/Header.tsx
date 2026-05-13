@@ -1,51 +1,58 @@
 "use client"
 
 import Link from "next/link";
-import { Search, Menu } from "lucide-react";
+import { Search, Menu, Send, Command } from "lucide-react";
+import { motion } from "framer-motion";
 import { GithubIcon } from "./icons";
 
 export default function Header() {
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
-      <div className="flex h-14 items-center px-4 md:px-8">
-        <div className="mr-4 hidden md:flex">
-          <Link href="/" className="mr-6 flex items-center space-x-2">
-            <span className="hidden font-bold sm:inline-block tracking-tight text-lg">
-              NEF<span className="text-primary/60">2</span>
+    <header className="sticky top-0 z-50 w-full glass border-b border-white/[0.05]">
+      <div className="flex h-16 items-center px-4 md:px-8 justify-between">
+        <div className="flex items-center gap-8">
+          <Link href="/" className="flex items-center space-x-2 group">
+            <div className="relative h-8 w-8 overflow-hidden rounded-lg bg-primary accent-gradient flex items-center justify-center">
+              <span className="text-primary-foreground font-black text-[10px] tracking-tighter">NEF2</span>
+              <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+            <span className="hidden font-bold tracking-tight text-white/90 sm:inline-block text-lg">
+              NEF2
             </span>
           </Link>
-          <nav className="flex items-center space-x-6 text-sm font-medium">
-            <Link href="/docs/introduction" className="transition-colors hover:text-foreground/80 text-foreground/60">Documentation</Link>
-            <Link href="/docs/architecture" className="transition-colors hover:text-foreground/80 text-foreground/60">Architecture</Link>
-            <Link href="/docs/hardware" className="transition-colors hover:text-foreground/80 text-foreground/60">Hardware</Link>
+          
+          <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-white/50">
+            <Link href="/docs/introduction" className="hover:text-primary transition-colors">Documentation</Link>
+            <Link href="/docs/architecture" className="hover:text-primary transition-colors">Architecture</Link>
+            <Link href="/docs/nef-core" className="hover:text-primary transition-colors">Runtime</Link>
+            <Link href="#" className="hover:text-primary transition-colors">Showcase</Link>
           </nav>
         </div>
-        <button className="inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 py-2 mr-2 px-0 text-base md:hidden">
-          <Menu className="h-6 w-6" />
-          <span className="sr-only">Toggle Menu</span>
-        </button>
-        <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-          <div className="w-full flex-1 md:w-auto md:flex-none">
-            <button className="inline-flex items-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 relative w-full justify-start text-sm text-muted-foreground sm:pr-12 md:w-40 lg:w-64">
-              <Search className="mr-2 h-4 w-4" />
-              <span>Search...</span>
-              <kbd className="pointer-events-none absolute right-1.5 top-1.5 hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
-                <span className="text-xs">⌘</span>K
-              </kbd>
+
+        <div className="flex items-center gap-4">
+          <div className="relative hidden lg:block">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
+            <input 
+              type="text" 
+              placeholder="Search documentation..." 
+              className="h-9 w-[260px] rounded-full border border-white/[0.08] bg-white/[0.03] pl-10 pr-12 text-sm text-white/70 outline-none transition-all focus:border-primary/50 focus:bg-white/[0.05] focus:ring-1 focus:ring-primary/20"
+            />
+            <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-1 rounded border border-white/10 bg-white/5 px-1.5 py-0.5 text-[10px] font-medium text-white/30">
+              <Command className="h-2.5 w-2.5" />
+              <span>K</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 md:border-l border-white/10 md:pl-4">
+            <Link href="https://github.com/Hexa08/NEF2" target="_blank" className="p-2 text-white/50 hover:text-white transition-colors hidden sm:block">
+              <GithubIcon className="h-5 w-5" />
+            </Link>
+            <Link href="https://twitter.com" target="_blank" className="p-2 text-white/50 hover:text-white transition-colors hidden sm:block">
+              <Send className="h-5 w-5" />
+            </Link>
+            <button className="md:hidden p-2 text-white/50 hover:text-white transition-colors">
+              <Menu className="h-6 w-6" />
             </button>
           </div>
-          <nav className="flex items-center space-x-2">
-            <Link
-              href="https://github.com/Hexa08/NEF2"
-              target="_blank"
-              rel="noreferrer"
-            >
-              <div className="inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 w-9 px-0">
-                <GithubIcon className="h-4 w-4" />
-                <span className="sr-only">GitHub</span>
-              </div>
-            </Link>
-          </nav>
         </div>
       </div>
     </header>

@@ -3,11 +3,30 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  Box, 
+  Cpu, 
+  Zap, 
+  Share2, 
+  Shield, 
+  Activity, 
+  Code, 
+  Layers, 
+  Terminal, 
+  ChevronRight,
+  Database,
+  Globe,
+  Smartphone,
+  HelpCircle,
+  FileText
+} from "lucide-react";
+import { useState } from "react";
 
 const sidebarItems = [
   {
     title: "Foundations",
+    icon: <Layers className="h-4 w-4" />,
     items: [
       { title: "Introduction", href: "/docs/introduction" },
       { title: "Architecture", href: "/docs/architecture" },
@@ -17,6 +36,7 @@ const sidebarItems = [
   },
   {
     title: "Core Technology",
+    icon: <Cpu className="h-4 w-4" />,
     items: [
       { title: "NEFCore Runtime", href: "/docs/nef-core" },
       { title: "Device Abstraction", href: "/docs/dal" },
@@ -26,6 +46,7 @@ const sidebarItems = [
   },
   {
     title: "API Reference",
+    icon: <Code className="h-4 w-4" />,
     items: [
       { title: "Tensors", href: "/docs/tensors" },
       { title: "Neural Networks", href: "/docs/nn" },
@@ -35,6 +56,7 @@ const sidebarItems = [
   },
   {
     title: "Advanced",
+    icon: <Zap className="h-4 w-4" />,
     items: [
       { title: "Multi-GPU Fabric", href: "/docs/distributed" },
       { title: "Agent Infrastructure", href: "/docs/agents" },
@@ -43,17 +65,8 @@ const sidebarItems = [
     ],
   },
   {
-    title: "Specialized",
-    items: [
-      { title: "Performance Metrics", href: "/docs/metrics" },
-      { title: "Tokenizers", href: "/docs/tokenizers" },
-      { title: "Computer Vision", href: "/docs/vision" },
-      { title: "Voice Processing", href: "/docs/voice" },
-      { title: "RDMA Networking", href: "/docs/networking" },
-    ],
-  },
-  {
     title: "Ecosystem",
+    icon: <Globe className="h-4 w-4" />,
     items: [
       { title: "Simulation", href: "/docs/simulation" },
       { title: "Mobile Deployment", href: "/docs/mobile" },
@@ -67,13 +80,16 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <div className="w-full">
+    <nav className="flex flex-col gap-6 pr-4">
       {sidebarItems.map((section, index) => (
-        <div key={index} className="pb-8">
-          <h4 className="mb-1 rounded-md px-2 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
-            {section.title}
-          </h4>
-          <div className="grid grid-flow-row auto-rows-max text-sm">
+        <div key={index} className="flex flex-col gap-2">
+          <div className="flex items-center gap-2 px-2 text-white/40 mb-1">
+            {section.icon}
+            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em]">
+              {section.title}
+            </h4>
+          </div>
+          <div className="flex flex-col gap-0.5">
             {section.items.map((item, itemIndex) => {
               const active = pathname === item.href;
               return (
@@ -81,28 +97,30 @@ export default function Sidebar() {
                   key={itemIndex}
                   href={item.href}
                   className={cn(
-                    "group relative flex w-full items-center rounded-md border border-transparent px-2 py-1.5 transition-all",
+                    "group relative flex items-center justify-between rounded-lg px-3 py-2 text-sm transition-all duration-200",
                     active 
-                      ? "text-foreground font-medium" 
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      ? "text-primary font-medium bg-primary/5" 
+                      : "text-white/50 hover:text-white/90 hover:bg-white/[0.03]"
                   )}
                 >
+                  <span className="relative z-10">{item.title}</span>
                   {active && (
                     <motion.div
-                      layoutId="sidebar-active"
-                      className="absolute inset-0 z-0 rounded-md bg-secondary/50"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.2 }}
+                      layoutId="sidebar-active-indicator"
+                      className="absolute left-0 w-[2px] h-4 bg-primary rounded-full"
+                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
                     />
                   )}
-                  <span className="relative z-10">{item.title}</span>
+                  <ChevronRight className={cn(
+                    "h-3 w-3 transition-transform duration-200 opacity-0 group-hover:opacity-100",
+                    active ? "opacity-100 text-primary" : "text-white/20"
+                  )} />
                 </Link>
               );
             })}
           </div>
         </div>
       ))}
-    </div>
+    </nav>
   );
 }

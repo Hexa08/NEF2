@@ -1,0 +1,50 @@
+# Serialization & Model I/O
+
+<div className="py-12 px-8 rounded-3xl bg-gradient-to-br from-slate-500/10 to-gray-500/10 border border-white/10 mb-12">
+  <h1 className="text-5xl font-extrabold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60">
+    Zero-Copy Persistence.
+  </h1>
+  <p className="text-xl text-foreground/80 leading-relaxed max-w-2xl">
+    NEF2's serialization engine is built for speed, utilizing zero-copy memory mapping to save and load massive models in seconds.
+  </p>
+</div>
+
+## The Serialization Bottleneck
+
+For models with hundreds of billions of parameters, the simple act of loading weights from disk can take minutes, stalling research and deployment. Standard formats like Pickle or even Safetensors often involve expensive data copies or Python-level overhead.
+
+## The NEF Format (.nef)
+
+NEF2 introduces the **.nef** format, designed for high-performance I/O:
+
+1.  **Memory-Mapped I/O (mmap)**: Models are mapped directly from disk into the process's address space. The OS handles paging data into RAM on-demand, allowing for "instant" loading.
+2.  **FlatBuffers Architecture**: The file structure is designed so that the on-disk representation is identical to the in-memory representation. No "parsing" or "deserialization" is required.
+3.  **Unified Metadata**: Architecture details, quantization scales, and hardware requirements are embedded directly in the file header.
+
+## Fast Saving and Loading
+
+The `nef2.serialization` module provides a simple API for persisting your models.
+
+```python
+import nef2
+
+# Save a model with zero-copy efficiency
+nef2.save(model, "my_model.nef")
+
+# Load a model instantly via memory mapping
+model = nef2.load("my_model.nef")
+```
+
+## Shared Weights & Forking
+
+Because NEF2 utilizes memory mapping, multiple processes on the same machine can load the same `.nef` file and share the underlying physical RAM. This is invaluable for serving multiple instances of a model or performing multi-GPU inference without duplicating weight memory.
+
+## Cross-Hardware Compatibility
+
+While optimized for raw speed, the `.nef` format is hardware-agnostic. A model saved on an NVIDIA workstation can be loaded on an Apple Silicon MacBook or an AMD-based server. The NEFCore runtime handles the necessary device-specific allocations and transfers upon loading.
+
+## Checkpointing for Large-Scale Training
+
+For long-running training jobs, NEF2 provides an **Asynchronous Checkpointer**. This allows the training process to continue immediately after a checkpoint is "initiated," with a background Rust thread handling the actual I/O to disk or cloud storage.
+
+By treating serialization as a performance-critical operation, NEF2 ensures that your workflow is never stalled by the speed of your storage.

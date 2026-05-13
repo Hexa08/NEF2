@@ -1,0 +1,50 @@
+# HyperCache Memory Architecture
+
+<div className="py-12 px-8 rounded-3xl bg-gradient-to-br from-orange-500/10 to-red-500/10 border border-white/10 mb-12">
+  <h1 className="text-5xl font-extrabold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60">
+    Infinite Memory.
+  </h1>
+  <p className="text-xl text-foreground/80 leading-relaxed max-w-2xl">
+    HyperCache is NEF2's intelligent memory virtualization system, seamlessly paging model weights and KV-caches across VRAM, System RAM, and NVMe storage.
+  </p>
+</div>
+
+## The Memory Wall Problem
+
+As models grow to trillions of parameters, they quickly exceed the physical VRAM available on even the most advanced GPUs. Traditional solutions involve slow offloading or expensive model parallelism. HyperCache solves this by treating all system memory as a single, virtualized hierarchy.
+
+## Hierarchical Tiers
+
+HyperCache organizes memory into three distinct tiers, optimized for latency and capacity:
+
+1.  **Hot (VRAM)**: The most performance-critical data. This includes active tokens, immediate gradients, and the most frequently accessed weights.
+2.  **Warm (System RAM)**: Compressed KV-caches and secondary weight sets. Data in this tier can be paged into VRAM with minimal latency.
+3.  **Cold (NVMe/SSD)**: Semantic memory, archived weights, and long-term KV history. Data is streamed on-demand using high-speed NVMe protocols.
+
+## Intelligent Tiering Logic
+
+HyperCache doesn't just move data; it makes "smart" decisions based on token importance and temporal locality:
+
+-   **Token Importance**: During inference, HyperCache analyzes the attention weights to determine which tokens are critical for the current context. Low-importance tokens are compressed (using TurboQuant) and moved to the "Warm" or "Cold" tiers.
+-   **Temporal Decay**: As the reasoning window shifts, older context is automatically migrated to slower storage tiers to make room for new input.
+-   **Predictive Prefetching**: Based on the execution graph, HyperCache predicts which weights will be needed next and begins the transfer from RAM to VRAM before they are called.
+
+## TurboQuant Integration
+
+To maximize the capacity of each tier, HyperCache is tightly integrated with the **TurboQuant** stack. Weights and caches can be dynamically re-quantized as they move between tiers (e.g., FP16 in VRAM, FP8 in RAM, INT4 on SSD).
+
+```python
+from nef2.memory import HyperCache
+
+# Initialize HyperCache with custom tier limits
+cache = HyperCache(max_hot_tokens=2048, max_warm_tokens=8192)
+
+# Append new data with an importance score
+cache.append(key_tensor, value_tensor, token_importance=0.95)
+
+# HyperCache automatically manages the migration between VRAM, RAM, and NVMe
+stats = cache.stats()
+print(f"VRAM usage: {stats['hot_tokens']} tokens")
+```
+
+HyperCache turns a single 24GB GPU into a workstation capable of running massive models, democratizing access to state-of-the-art AI.

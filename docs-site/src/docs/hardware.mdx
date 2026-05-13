@@ -1,0 +1,42 @@
+# Hardware Support Matrix
+
+NEF2 is designed to extract maximum performance from diverse hardware without requiring code changes from the user. We implement backend-specific drivers that talk directly to the hardware.
+
+## Support Overview
+
+| Backend | Platform | Status | Primary Library |
+| :--- | :--- | :--- | :--- |
+| **NVIDIA CUDA** | Linux / Windows | Production | cuBLAS / cuDNN |
+| **AMD ROCm** | Linux | Production | hipBLAS / MIOpen |
+| **Apple Metal** | macOS / iOS | Production | MPSGraph |
+| **Intel oneAPI** | Linux / Windows | Active | oneMKL |
+| **Vulkan** | Mobile / Edge | Active | SPIR-V Kernels |
+
+## Backend Details
+
+### NVIDIA CUDA
+We utilize direct PTX kernel execution for high-performance ops.
+- **Features**: FP16/BF16 Tensor Cores, Async Copy, VRAM Virtualization.
+- **Minimum Requirements**: Volta Architecture (7.0) or newer.
+
+### AMD HIP / ROCm
+Full support for AMD's compute stack with zero-overhead dispatch.
+- **Features**: Matrix Core acceleration, RCCL for multi-GPU, Infinity Fabric support.
+- **Tested On**: Instinct MI200/MI300, Radeon RX 7000 Series.
+
+### Apple Silicon (Metal)
+Native integration with Apple's Metal Performance Shaders (MPS).
+- **Features**: Unified Memory optimization, Neural Engine offloading (beta), MPSGraph fusion.
+- **Support**: M1, M2, and M3 series chips.
+
+## Automatic Selection
+
+NEF2 automatically detects and selects the best available backend at runtime. You can override this behavior by setting the `NEF_BACKEND` environment variable:
+
+```bash
+export NEF_BACKEND=cuda  # Force NVIDIA
+export NEF_BACKEND=hip   # Force AMD
+export NEF_BACKEND=metal # Force Apple
+```
+
+For more details on how to write custom kernels for these backends, see the [Developer Guide](/docs/developer-guide).

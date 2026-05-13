@@ -1,0 +1,78 @@
+# Getting Started
+
+Welcome to the NEF2 ecosystem. This guide will help you set up your environment and build your first hardware-native model.
+
+## Prerequisites
+
+Before installing NEF2, ensure your system meets the following requirements:
+
+- **OS**: Linux (Ubuntu 20.04+ recommended) or macOS 12+ (Apple Silicon).
+- **Python**: 3.9 - 3.12.
+- **Hardware**: NVIDIA GPU (Compute Capability 7.0+), AMD GPU (ROCm 5.0+), or Apple M-Series Chip.
+
+## Installation
+
+### From PyPI (Standard)
+
+The easiest way to get started is via pip:
+
+```bash
+pip install nef2
+```
+
+### Hardware-Accelerated (Recommended)
+
+For full GPU support and optimized kernels, use our custom wheel index:
+
+```bash
+pip install nef2 --extra-index-url https://Hexa08.github.io/whl/
+```
+
+### From Source
+
+If you want to contribute or use the latest development features:
+
+```bash
+git clone https://github.com/Hexa08/NEF2.git
+cd NEF2
+pip install -e .
+```
+
+## Verifying the Setup
+
+Run the following diagnostic script to ensure NEF2 can see your hardware:
+
+```python
+import nef2.gpu as gpu
+
+print(f"CUDA Available: {gpu.cuda_available()}")
+print(f"ROCm Available: {gpu.rocm_available()}")
+print(f"Metal Available: {gpu.metal_available()}")
+
+if any([gpu.cuda_available(), gpu.rocm_available(), gpu.metal_available()]):
+    print("🚀 Hardware acceleration is active!")
+```
+
+## Your First Model
+
+NEF2 follows a familiar object-oriented API for building neural networks.
+
+```python
+import nef2
+from nef2 import nn
+
+class TinyModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.layer = nn.Linear(128, 10)
+
+    def forward(self, x):
+        return self.layer(x)
+
+model = TinyModel()
+x = nef2.Tensor.randn((1, 128))
+y = model(x)
+print(f"Output: {y.shape}")
+```
+
+Next, check out the [Architecture](/docs/architecture) guide to see how we optimize these operations under the hood.

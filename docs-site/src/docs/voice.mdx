@@ -1,0 +1,58 @@
+# Voice & Audio Processing
+
+<div className="py-12 px-8 rounded-3xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-white/10 mb-12">
+  <h1 className="text-5xl font-extrabold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60">
+    The Sound of AI.
+  </h1>
+  <p className="text-xl text-foreground/80 leading-relaxed max-w-2xl">
+    NEF2 Voice provides specialized kernels and model presets for high-performance audio processing, speech-to-text, and real-time synthesis.
+  </p>
+</div>
+
+## Low-Latency Audio Substrate
+
+Processing audio in real-time requires deterministic performance and ultra-low latency. NEF2 Voice implements core signal processing primitives as hardware-accelerated kernels, ensuring that your audio pipelines can keep up with high-fidelity streams.
+
+## Core Audio Primitives
+
+### Fast Fourier Transform (FFT)
+NEF2 includes highly optimized FFT and STFT kernels (via cuFFT, clFFT, and Accelerate) for rapid frequency-domain analysis.
+
+```python
+from nef2 import voice
+
+# Perform a high-speed Short-Time Fourier Transform
+spectrogram = voice.stft(audio_tensor, n_fft=2048, hop_length=512)
+```
+
+### Spectrogram Processing
+Native support for Mel-spectrograms, MFCCs, and other common audio features, implemented as fused kernels to minimize memory transfers.
+
+## Speech Model Presets
+
+NEF2 Voice comes with pre-trained and optimized architectures for modern voice tasks:
+
+-   **Whisper-NEF**: A high-performance implementation of the Whisper architecture, utilizing **FlashAttention** and **TurboQuant** for 5x faster transcription than standard implementations.
+-   **Tacotron & FastSpeech**: Optimized synthesis backends for real-time text-to-speech.
+-   **Wav2Vec 2.0**: Foundation models for audio representation learning.
+
+## Real-Time Audio Streaming
+
+The `nef2.voice.stream` API allows for the seamless integration of live audio buffers into the NEF pipeline. By utilizing the **Shared Tensor Bus**, audio data can be processed by multiple agents (e.g., transcription -> translation -> synthesis) without any serialization overhead.
+
+```python
+from nef2.voice import AudioStream
+
+# Initialize a low-latency stream from the system microphone
+with AudioStream(sample_rate=16000) as stream:
+    for chunk in stream:
+        # Process audio chunk directly as a nef2.Tensor
+        text = whisper_model(chunk)
+        print(f"Heard: {text}")
+```
+
+## Psychoacoustic Compression
+
+For large-scale audio datasets, NEF2 Voice includes psychoacoustic quantization techniques that reduce the bit-depth of audio tensors while preserving the features critical for model performance, effectively doubling your effective audio storage capacity.
+
+By providing a dedicated substrate for sound, NEF2 Voice enables the creation of truly conversational and responsive AI systems.

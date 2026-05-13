@@ -13,13 +13,19 @@
 
 ---
 
-## 🌌 The Vision
+## NEF2: The AI Operating Substrate
+
+**A hardware-native, framework-independent intelligence stack for the next generation of autonomous systems.**
+
+---
+
+## The Vision
 
 NEF2 is not a library; it is a **Substrate**. It eliminates the "framework tax" by bypassing heavy abstractions like PyTorch and JAX, communicating directly with the silicon through a custom-built hardware-native stack.
 
 It is designed for a world where AI is not just a model, but a distributed, agentic system requiring zero-copy memory movement, hardware-peak performance, and intelligent memory virtualization.
 
-## 🚀 Key Pillars
+## Key Pillars
 
 - **Zero-Dependency Core**: Pure Python/C++/Rust. No external ML frameworks.
 - **Hardware-Native Stack (NEF-HNS)**: Direct NVIDIA Driver API integration using raw PTX assembly.
@@ -28,7 +34,7 @@ It is designed for a world where AI is not just a model, but a distributed, agen
 
 ---
 
-## 🛠 Feature Matrix
+## Feature Matrix
 
 | Feature | Status | Technology |
 | :--- | :--- | :--- |
@@ -36,12 +42,12 @@ It is designed for a world where AI is not just a model, but a distributed, agen
 | **CUDA Driver Backend** | ✅ Production | Raw PTX Kernel execution |
 | **HyperCache (VRAM/RAM)** | 🚧 Beta | Intelligent memory paging |
 | **TurboQuant** | 🚧 Beta | Adaptive precision (FP8, INT4, NF4) |
-| **Multi-GPU Fabric** | 📅 Q3 2026 | Unified logical accelerator |
-| **NEF Compiler** | 📅 Q4 2026 | Graph capture & kernel fusion |
+| **Multi-GPU Fabric** | ✅ Active | Unified logical accelerator |
+| **NEF Compiler** | ✅ Active | Graph capture & kernel fusion |
 
 ---
 
-## 📖 Documentation Suite
+## Documentation Suite
 
 For deep dives into specific areas of the NEF2 ecosystem:
 
@@ -52,7 +58,7 @@ For deep dives into specific areas of the NEF2 ecosystem:
 
 ---
 
-## 🚦 Quick Start
+## Quick Start
 
 ### Installation
 
@@ -78,12 +84,12 @@ if gpu.cuda_available():
 
 ---
 
-## 🗺 Roadmap
+## Roadmap
 
 1.  **Phase 1 (Active)**: Establish the Foundation with NEFCore and custom CUDA kernels.
-2.  **Phase 2**: Implement the Rust-based safe concurrency layer and distributed networking.
-3.  **Phase 3**: Launch the HyperScale Multi-GPU Fabric for unified cluster execution.
-4.  **Phase 4**: Realize Agent-Native Infrastructure for autonomous, model-agnostic intelligence.
+2.  **Phase 2 (Active)**: Implement the Rust-based safe concurrency layer and distributed networking.
+3.  **Phase 3 (Active)**: Launch the HyperScale Multi-GPU Fabric for unified cluster execution.
+4.  **Phase 4 (Active)**: Realize Agent-Native Infrastructure for autonomous, model-agnostic intelligence.
 
 ---
 

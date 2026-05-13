@@ -11,4 +11,16 @@ env/
 oldcontext.md
 oldcontext.md/
 tests/
-test_*.py
+test_*.pynode_modules/
+.next/
+out/
+docs-site-vite/
+docs-site-old/
+venv/
+__pycache__/
+*.so
+.pytest_cache/
+wheelhouse/
+dist/
+build/
+nef2.egg-info/

@@ -92,6 +92,32 @@
             overflow: hidden;
         }
 
+        /* Mobile Adjustments */
+        @media (max-width: 1024px) {
+            .sidebar-right { display: none; }
+            .main-container { grid-template-columns: var(--sidebar-left-width) 1fr; }
+        }
+
+        @media (max-width: 768px) {
+            .main-container { grid-template-columns: 1fr; }
+            .sidebar-left { 
+                position: fixed; top: var(--nav-height); left: -100%; width: 280px; height: calc(100vh - var(--nav-height));
+                z-index: 90; transition: left 0.3s ease; background: var(--sidebar-bg);
+            }
+            .sidebar-left.open { left: 0; }
+            .content-area { padding: 24px 20px; }
+            .navbar { justify-content: space-between; }
+            .search-container { display: none; }
+            .nav-menu-btn { display: block !important; cursor: pointer; color: var(--muted-text); }
+        }
+
+        .nav-menu-btn { display: none; }
+        .overlay { 
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.5); z-index: 80; backdrop-filter: blur(4px);
+        }
+        .overlay.active { display: block; }
+
         /* Sidebar Left */
         .sidebar-left {
             background: var(--sidebar-bg);
@@ -183,19 +209,24 @@
 <body>
 
     <nav class="navbar">
-        <div class="logo-icon">N2</div>
-        <span class="logo-text">NEF2</span>
-        <span class="badge">v0.2.3</span>
+        <div class="nav-left" style="display:flex;align-items:center;gap:12px;">
+            <div class="nav-menu-btn" id="menu-toggle">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            </div>
+            <div class="logo-icon">N2</div>
+            <span class="logo-text">NEF2</span>
+        </div>
         <div class="search-container">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
             <input type="text" placeholder="Search docs...">
         </div>
         <div class="nav-right">
             <a href="#" class="nav-link" style="font-size: 13px; color: var(--muted-text);">GitHub</a>
-            <span class="badge">MIT</span>
             <span class="status-badge">Build Passing</span>
         </div>
     </nav>
+
+    <div class="overlay" id="mobile-overlay"></div>
 
     <div class="main-container">
         <aside class="sidebar-left">
@@ -650,25 +681,31 @@ nef2-gpu-stress --duration 60</pre></div>
         const tocContent = document.getElementById('toc-content');
         const scrollContainer = document.getElementById('scroll-container');
         const progressBar = document.getElementById('reading-progress');
+        const sidebarLeft = document.querySelector('.sidebar-left');
+        const menuToggle = document.getElementById('menu-toggle');
+        const mobileOverlay = document.getElementById('mobile-overlay');
 
         function renderNav() {
             let html = '';
             NAV_DATA.forEach(group => {
-                html += \`<span class="nav-group-label">\${group.label}</span>\`;
+                html += `<span class="nav-group-label">${group.label}</span>`;
                 group.items.forEach(item => {
-                    html += \`
-                        <a href="#\${item.id}" class="nav-item" data-id="\${item.id}">
+                    html += `
+                        <a href="#${item.id}" class="nav-item" data-id="${item.id}">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-                            \${item.title}
+                            ${item.title}
                         </a>
-                    \`;
+                    `;
                 });
             });
             navContent.innerHTML = html;
         }
 
         function renderPage(id) {
-            const safeId = PAGES[id] ? id : 'overview';
+            // Remove hash if it's a TOC header
+            const cleanId = id.startsWith('h-') ? window.location.hash.split('#')[1] : id;
+            const safeId = PAGES[cleanId] ? cleanId : 'overview';
+            
             contentTarget.innerHTML = PAGES[safeId];
             
             // Update Active Nav
@@ -676,19 +713,13 @@ nef2-gpu-stress --duration 60</pre></div>
                 el.classList.toggle('active', el.getAttribute('data-id') === safeId);
             });
 
-            // Re-bind copy buttons
             bindCopyButtons();
-
-            // Generate TOC
             generateTOC();
-
-            // Reset scroll
             scrollContainer.scrollTop = 0;
-            
-            // Update URL hash without scroll jump
-            if (window.location.hash !== '#' + safeId) {
-                history.pushState(null, null, '#' + safeId);
-            }
+
+            // Close mobile menu
+            sidebarLeft.classList.remove('open');
+            mobileOverlay.classList.remove('active');
         }
 
         function generateTOC() {
@@ -697,14 +728,15 @@ nef2-gpu-stress --duration 60</pre></div>
             headers.forEach((h, i) => {
                 const id = 'h-' + i;
                 h.id = id;
-                html += \`<a href="#\${id}" class="toc-link" data-id="\${id}">\${h.innerText}</a>\`;
+                html += `<a href="#${id}" class="toc-link" data-id="${id}">${h.innerText}</a>`;
             });
             tocContent.innerHTML = html;
         }
 
         function bindCopyButtons() {
             document.querySelectorAll('.copy-btn').forEach(btn => {
-                btn.onclick = () => {
+                btn.onclick = (e) => {
+                    e.preventDefault();
                     const code = btn.closest('.code-block').querySelector('pre').innerText;
                     navigator.clipboard.writeText(code).then(() => {
                         const old = btn.innerText;
@@ -714,6 +746,16 @@ nef2-gpu-stress --duration 60</pre></div>
                 };
             });
         }
+
+        // Mobile Handlers
+        menuToggle.onclick = () => {
+            sidebarLeft.classList.toggle('open');
+            mobileOverlay.classList.toggle('active');
+        };
+        mobileOverlay.onclick = () => {
+            sidebarLeft.classList.remove('open');
+            mobileOverlay.classList.remove('active');
+        };
 
         // Search Filter
         document.getElementById('sidebar-filter').oninput = (e) => {
@@ -730,11 +772,10 @@ nef2-gpu-stress --duration 60</pre></div>
             const height = scrollContainer.scrollHeight - scrollContainer.clientHeight;
             progressBar.style.width = (winScroll / height * 100) + '%';
 
-            // Highlight TOC
             const headers = contentTarget.querySelectorAll('h2');
             headers.forEach(h => {
                 const rect = h.getBoundingClientRect();
-                if (rect.top >= 0 && rect.top <= 150) {
+                if (rect.top >= 0 && rect.top <= 200) {
                     document.querySelectorAll('.toc-link').forEach(link => {
                         link.classList.toggle('active', link.getAttribute('data-id') === h.id);
                     });
@@ -742,10 +783,18 @@ nef2-gpu-stress --duration 60</pre></div>
             });
         };
 
+        // Routing
+        window.addEventListener('hashchange', () => {
+            const hash = window.location.hash.slice(1);
+            if (!hash.startsWith('h-')) {
+                renderPage(hash);
+            }
+        });
+
         // Init
-        window.onpopstate = () => renderPage(window.location.hash.slice(1));
         renderNav();
-        renderPage(window.location.hash.slice(1) || 'overview');
+        const initialHash = window.location.hash.slice(1);
+        renderPage(initialHash || 'overview');
 
     </script>
 </body>

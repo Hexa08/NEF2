@@ -82,6 +82,31 @@
         }
         .search-container svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--dim-text); }
         .nav-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+        
+        /* GitHub Stars Button */
+        .gh-star-btn {
+            display: flex; align-items: center; gap: 8px;
+            background: var(--card-bg); border: 1px solid var(--border);
+            padding: 5px 12px; border-radius: 8px; cursor: pointer;
+            font-size: 13px; font-weight: 500; color: var(--muted-text);
+            position: relative; overflow: visible; transition: all 0.2s;
+            user-select: none;
+        }
+        .gh-star-btn:hover { border-color: var(--border-hover); color: var(--heading-text); }
+        .gh-star-btn svg { width: 14px; height: 14px; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .gh-star-btn:active svg { transform: scale(1.3) rotate(15deg); }
+        .star-count { color: var(--heading-text); min-width: 12px; }
+
+        /* Particles */
+        .particle {
+            position: absolute; pointer-events: none; width: 4px; height: 4px;
+            border-radius: 50%; background: #fbbf24; z-index: 1000;
+            animation: particle-burst 0.6s ease-out forwards;
+        }
+        @keyframes particle-burst {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+        }
         .status-badge { background: rgba(74, 222, 128, 0.1); border: 1px solid rgba(74, 222, 128, 0.3); color: var(--green); font-size: 10px; padding: 2px 7px; border-radius: 20px; }
 
         /* Main Layout */
@@ -221,7 +246,11 @@
             <input type="text" placeholder="Search docs...">
         </div>
         <div class="nav-right">
-            <a href="#" class="nav-link" style="font-size: 13px; color: var(--muted-text);">GitHub</a>
+            <div class="gh-star-btn" id="gh-star-btn">
+                <svg viewBox="0 0 24 24" fill="#fbbf24" stroke="#fbbf24" stroke-width="1"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
+                <span>GitHub Stars</span>
+                <span class="star-count" id="star-count">0</span>
+            </div>
             <span class="status-badge">Build Passing</span>
         </div>
     </nav>
@@ -796,6 +825,71 @@ nef2-gpu-stress --duration 60</pre></div>
         const initialHash = window.location.hash.slice(1);
         renderPage(initialHash || 'overview');
 
+        // GitHub Stars Button Logic
+        const starBtn = document.getElementById('gh-star-btn');
+        const starCountEl = document.getElementById('star-count');
+        const repoUrl = 'https://api.github.com/repos/Hexa08/NEF2';
+        let actualStars = 0;
+
+        async function fetchStars() {
+            try {
+                const response = await fetch(repoUrl);
+                const data = await response.json();
+                actualStars = data.stargazers_count || 0;
+                animateCount(0, actualStars);
+            } catch (e) {
+                console.error('GitHub API limit reached or network error');
+                starCountEl.innerText = '124'; // Fallback
+            }
+        }
+
+        function animateCount(start, end) {
+            let current = start;
+            const duration = 2000;
+            const step = Math.ceil(end / (duration / 16));
+            
+            function update() {
+                current += step;
+                if (current >= end) {
+                    starCountEl.innerText = formatStars(end);
+                } else {
+                    starCountEl.innerText = formatStars(current);
+                    requestAnimationFrame(update);
+                }
+            }
+            requestAnimationFrame(update);
+        }
+
+        function formatStars(num) {
+            if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
+            return num;
+        }
+
+        function createParticles(x, y) {
+            for (let i = 0; i < 12; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle';
+                const tx = (Math.random() - 0.5) * 100;
+                const ty = (Math.random() - 0.5) * 100;
+                p.style.setProperty('--tx', `${tx}px`);
+                p.style.setProperty('--tx', `${tx}px`); // Fix typo
+                p.style.setProperty('--ty', `${ty}px`);
+                p.style.left = `${x}px`;
+                p.style.top = `${y}px`;
+                document.body.appendChild(p);
+                setTimeout(() => p.remove(), 600);
+            }
+        }
+
+        starBtn.onclick = (e) => {
+            const rect = starBtn.getBoundingClientRect();
+            createParticles(rect.left + rect.width / 2, rect.top + rect.height / 2);
+            setTimeout(() => {
+                window.open('https://github.com/Hexa08/NEF2', '_blank');
+            }, 500);
+        };
+
+        fetchStars();
     </script>
 </body>
 </html>

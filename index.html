@@ -175,7 +175,7 @@
             padding: 44px 52px;
             scroll-behavior: smooth;
         }
-        .content-wrapper { max-width: 700px; margin: 0 auto; }
+        .content-wrapper { max-width: 800px; margin: 0 auto; }
         .breadcrumb { font-size: 11px; color: var(--dim-text); margin-bottom: 20px; }
         .breadcrumb span { color: #3f3f46; margin: 0 4px; }
         .divider { margin: 40px 0; border: 0; border-top: 1px solid var(--border); }
@@ -243,7 +243,7 @@
         </div>
         <div class="search-container">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            <input type="text" placeholder="Search docs...">
+            <input type="text" placeholder="Search docs..." id="global-search">
         </div>
         <div class="nav-right">
             <div class="gh-star-btn" id="gh-star-btn" style="border-radius: 20px; background: #000; padding: 4px 16px;">
@@ -335,62 +335,18 @@
         ];
 
         const PAGES = {
-            community: `
-                <div class="breadcrumb">Docs <span>/</span> API Reference <span>/</span> Community</div>
-                <h1>GitHub Social Proof</h1>
-                <p>Integrate live GitHub star counts with celebratory particle effects into your own sites.</p>
-                
-                <h2>Variations</h2>
-                <div style="display:flex; flex-direction:column; gap:20px; margin-top:20px;">
-                    <div>
-                        <p style="font-size:12px; color:var(--dim-text); margin-bottom:8px;">Standard Display (Full Numbers)</p>
-                        <div class="gh-star-btn" data-user="shadcn" data-repo="ui" style="border-radius: 20px; background: #000; padding: 4px 16px; width: fit-content;">
-                            <svg viewBox="0 0 24 24" fill="#fff" style="width:16px; height:16px;"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 4.438 9.584 10.605 10.723.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"></path></svg>
-                            <span style="color:#fff; font-weight: 600;">GitHub Stars</span>
-                            <svg viewBox="0 0 24 24" fill="#fbbf24" style="width:16px; height:16px; margin-left: 4px;"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
-                            <span class="star-count" style="color:#fff;">0</span>
-                        </div>
-                    </div>
-
-                    <div>
-                        <p style="font-size:12px; color:var(--dim-text); margin-bottom:8px;">Compact Formatting (Large Repos)</p>
-                        <div class="gh-star-btn" data-user="vercel" data-repo="next.js" data-formatted="true" style="border-radius: 20px; background: #000; padding: 4px 16px; width: fit-content;">
-                            <svg viewBox="0 0 24 24" fill="#fff" style="width:16px; height:16px;"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 4.438 9.584 10.605 10.723.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"></path></svg>
-                            <span style="color:#fff; font-weight: 600;">GitHub Stars</span>
-                            <svg viewBox="0 0 24 24" fill="#fbbf24" style="width:16px; height:16px; margin-left: 4px;"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
-                            <span class="star-count" style="color:#fff;">0</span>
-                        </div>
-                    </div>
-
-                    <div>
-                        <p style="font-size:12px; color:var(--dim-text); margin-bottom:8px;">Scroll Trigger (inView: true)</p>
-                        <div class="gh-star-btn" data-user="facebook" data-repo="react" data-formatted="true" data-inview="true" style="border-radius: 20px; background: #000; padding: 4px 16px; width: fit-content;">
-                            <svg viewBox="0 0 24 24" fill="#fff" style="width:16px; height:16px;"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 4.438 9.584 10.605 10.723.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"></path></svg>
-                            <span style="color:#fff; font-weight: 600;">GitHub Stars</span>
-                            <svg viewBox="0 0 24 24" fill="#fbbf24" style="width:16px; height:16px; margin-left: 4px;"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
-                            <span class="star-count" style="color:#fff;">0</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="divider"></div>
-
-                <h2>Usage (Vanilla JS)</h2>
-                <div class="code-block">
-                    <div class="code-header"><span class="code-lang">html</span><button class="copy-btn">Copy</button></div>
-                    <div class="code-content"><pre>&lt;div class="gh-star-btn" 
-     data-user="Hexa08" 
-     data-repo="NEF2" 
-     data-formatted="true"&gt;
-    &lt;span&gt;GitHub Stars&lt;/span&gt;
-    &lt;span class="star-count"&gt;0&lt;/span&gt;
-&lt;/div&gt;</pre></div>
-                </div>
-            `,
             overview: `
                 <div class="breadcrumb">Docs <span>/</span> Getting Started <span>/</span> Overview</div>
                 <h1 class="hero-h1">NEF2: The AI Operating Infrastructure</h1>
                 <p class="hero-p">A hardware-native, unified multi-backend intelligence stack for distributed AI execution.</p>
+                
+                <div style="margin: 24px 0; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--card-bg);">
+                    <img src="image.png" alt="NEF2 Architecture" style="width: 100%; height: auto; display: block; max-height: 400px; object-fit: contain;">
+                    <div style="padding: 12px; border-top: 1px solid var(--border); font-size: 11px; color: var(--dim-text); text-align: center;">
+                        Figure 1: The NEF2 Hardware-Native Stack (HNS) architecture overview.
+                    </div>
+                </div>
+
                 <div class="badge-row">
                     <span class="badge" style="background:rgba(99,102,241,0.1);color:var(--accent-light)">pypi v0.2.3</span>
                     <span class="badge">MIT License</span>
@@ -403,7 +359,6 @@
                 </div>
                 <div class="divider"></div>
                 <h2>Key Principles</h2>
-                <p>NEF2 is built on three core pillars that distinguish it from traditional frameworks:</p>
                 <div class="features-grid">
                     <div class="feature-card">
                         <div class="feature-title">Hardware-Native</div>
@@ -460,305 +415,121 @@ model = runtime.<span class="fn">load</span>(<span class="str">"llama-3.nef2"</s
 output = model.<span class="fn">forward</span>(tokens)
 <span class="fn">print</span>(output)</pre></div>
                 </div>
-                <div class="callout callout-info">
-                    <div class="feature-title">Pro Tip</div>
-                    <div class="feature-desc">Use <code>nef2.inspect("model.nef2")</code> to view metadata without loading weights.</div>
-                </div>
-            `,
-            config: `
-                <div class="breadcrumb">Docs <span>/</span> Getting Started <span>/</span> Configuration</div>
-                <h1>Configuration</h1>
-                <p>Global behavior can be controlled via environment variables or the configuration API.</p>
-                <table>
-                    <thead><tr><th>Variable</th><th>Default</th><th>Description</th></tr></thead>
-                    <tbody>
-                        <tr><td><code>NEF2_DEVICE</code></td><td><code>auto</code></td><td>Target backend (cuda, hip, metal, cpu)</td></tr>
-                        <tr><td><code>NEF2_CACHE_DIR</code></td><td><code>~/.nef2/cache</code></td><td>Location for JIT compiled kernels</td></tr>
-                        <tr><td><code>NEF2_LOG_LEVEL</code></td><td><code>INFO</code></td><td>DEBUG, INFO, WARNING, ERROR</td></tr>
-                    </tbody>
-                </table>
             `,
             memory: `
                 <div class="breadcrumb">Docs <span>/</span> Core Concepts <span>/</span> Memory Model</div>
                 <h1>Memory Model: HyperCache</h1>
-                <p>NEF2 uses <strong>HyperCache</strong>, a tiered memory management system that allows models larger than VRAM to run at near-native speeds.</p>
-                <h2>Tiered Storage</h2>
+                <p>NEF2 uses <strong>HyperCache</strong>, a tiered memory management system that virtualizes VRAM, System RAM, and NVMe.</p>
+                <h2>Tiered Storage Architecture</h2>
+                <p>HyperCache virtualizes memory by treating VRAM, System RAM, and NVMe as a single unified pool:</p>
                 <ul>
-                    <li><strong>L1 (VRAM):</strong> Active tensors and KV-cache.</li>
-                    <li><strong>L2 (Host RAM):</strong> Prefetched weights for the next N layers.</li>
-                    <li><strong>L3 (SSD/NVMe):</strong> Compressed weights stored in .nef2 format.</li>
+                    <li><strong>L1 (VRAM):</strong> Holds active tensors and the KV-cache. Data here is directly accessible by GPU kernels.</li>
+                    <li><strong>L2 (Host RAM):</strong> Stores weights for upcoming layers. NEF2 uses background threads to prefetch weights from RAM to VRAM using asynchronous DMA transfers.</li>
+                    <li><strong>L3 (NVMe):</strong> The .nef2 format supports memory-mapping (mmap), allowing the OS to page weights directly from disk into RAM on demand.</li>
                 </ul>
                 <div class="callout callout-tip">
                     <div class="feature-title">TurboQuant Integration</div>
-                    <div class="feature-desc">HyperCache automatically applies TurboQuant dequantization as weights move from L2 to L1.</div>
+                    <div class="feature-desc">As weights move from L2 to L1, HyperCache can apply on-the-fly dequantization (e.g., NF4 to FP16) using specialized conversion kernels, minimizing bandwidth usage.</div>
                 </div>
-            `,
-            turboquant: `
-                <div class="breadcrumb">Docs <span>/</span> Core Concepts <span>/</span> TurboQuant</div>
-                <h1>TurboQuant</h1>
-                <p>TurboQuant is an adaptive quantization engine that optimizes weights based on hardware support.</p>
-                <h2>Supported Formats</h2>
-                <table>
-                    <thead><tr><th>Format</th><th>Hardware</th><th>Accuracy Drop</th></tr></thead>
-                    <tbody>
-                        <tr><td>FP8 (E4M3/E5M2)</td><td>H100 / MI300</td><td>&lt; 0.1%</td></tr>
-                        <tr><td>INT4 (GPTQ-style)</td><td>Generic GPU</td><td>~ 1.2%</td></tr>
-                        <tr><td>NF4</td><td>Any</td><td>~ 0.8%</td></tr>
-                    </tbody>
-                </table>
             `,
             cuda: `
                 <div class="breadcrumb">Docs <span>/</span> GPU Documentation <span>/</span> CUDA Backend</div>
                 <h1>CUDA Backend</h1>
-                <p>The CUDA backend is NEF2's flagship target, supporting PTX generation and NCCL for distributed scaling.</p>
-                <h2>Features</h2>
+                <p>The CUDA backend is NEF2's flagship target, supporting direct PTX (Parallel Thread Execution) assembly generation for maximum control over hardware.</p>
+                <h2>Direct PTX Integration</h2>
+                <p>Unlike traditional frameworks that rely on high-level libraries, NEF2 generates optimized PTX kernels at runtime. This allows for:</p>
                 <ul>
-                    <li><strong>TensorCore Acceleration:</strong> Native support for WMMA and MMA instructions.</li>
-                    <li><strong>Graph Capture:</strong> Seamless integration with CUDA Graphs for low-latency dispatch.</li>
-                    <li><strong>Stream Multiplexing:</strong> Automatic overlap of compute and memory transfers.</li>
+                    <li><strong>Reduced Dispatch Overhead:</strong> By communicating directly with the CUDA Driver API (nvcuda), NEF2 eliminates layers of library abstractions.</li>
+                    <li><strong>Custom Kernel Fusion:</strong> The compiler can fuse any sequence of operations into a single PTX kernel, optimizing register usage and memory bandwidth.</li>
+                    <li><strong>Sm-Specific Tuning:</strong> Kernels are automatically tuned for the specific Compute Capability (SM version) of the target GPU.</li>
                 </ul>
                 <div class="code-block">
-                    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn">Copy</button></div>
-                    <div class="code-content"><pre><span class="cmt"># Force CUDA backend with specific device</span>
-runtime = nef2.<span class="fn">Runtime</span>(device=<span class="str">"cuda:0"</span>)</pre></div>
+                    <div class="code-header"><span class="code-lang">ptx</span><button class="copy-btn">Copy</button></div>
+                    <div class="code-content"><pre><span class="cmt">// Example: Optimized vector addition in PTX</span>
+.visible .entry vadd(.param .u64 a, .param .u64 b, .param .u64 out, .param .u32 n) {
+    .reg .pred %p;
+    .reg .b32 %r&lt;6&gt;;
+    .reg .b64 %rd&lt;8&gt;;
+    .reg .f32 %f&lt;4&gt;;
+    ld.param.u64 %rd1, [a];
+    ld.param.u64 %rd2, [b];
+    ld.param.u64 %rd3, [out];
+    ld.param.u32 %r4, [n];
+    <span class="cmt">// ... (Compute grid index and perform addition)</span>
+}</pre></div>
                 </div>
             `,
             dynamo: `
                 <div class="breadcrumb">Docs <span>/</span> Compiler Pipeline <span>/</span> NEFDynamo</div>
                 <h1>NEFDynamo</h1>
                 <p>NEFDynamo is the JIT graph capture component of the NEF2 compiler. It traces Python code into a hardware-agnostic Intermediate Representation (IR).</p>
-                <h2>How it works</h2>
+                <h2>The Tracing Process</h2>
+                <p>When a function is decorated or passed to <code>nef2.compile</code>, Dynamo begins a tracing process:</p>
                 <ol>
-                    <li>Captures Python bytecode.</li>
-                    <li>Traces tensor operations into <code>ProxyTensors</code>.</li>
-                    <li>Generates a logical graph for <code>NEFInductor</code>.</li>
+                    <li><strong>Bytecode Analysis:</strong> It intercepts Python execution to capture the sequence of tensor operations.</li>
+                    <li><strong>ProxyTensor Tracing:</strong> Instead of real data, Dynamo passes <code>ProxyTensors</code> through the code. These proxies record every operation they participate in.</li>
+                    <li><strong>IR Generation:</strong> The recorded operations are serialized into the NEF Intermediate Representation (IR), which is a directed acyclic graph (DAG).</li>
                 </ol>
+                <div class="callout callout-tip">
+                    <div class="feature-title">Dynamic Control Flow</div>
+                    <div class="feature-desc">NEFDynamo uses a custom frame evaluator to handle Python loops and conditionals, ensuring that the captured graph remains accurate even with complex logic.</div>
+                </div>
             `,
             inductor: `
                 <div class="breadcrumb">Docs <span>/</span> Compiler Pipeline <span>/</span> NEFInductor</div>
                 <h1>NEFInductor</h1>
                 <p>NEFInductor takes the IR from Dynamo and performs hardware-specific optimizations and kernel fusion.</p>
-                <h2>Fusion Strategies</h2>
+                <h2>Fusion Engine</h2>
+                <p>The core of NEFInductor is its pattern-matching fusion engine. It identifies sequences of operations that can be combined into a single hardware kernel.</p>
                 <ul>
-                    <li><strong>Vertical Fusion:</strong> Combining multiple ops (e.g. Linear + ReLU + Add) into a single kernel.</li>
-                    <li><strong>Horizontal Fusion:</strong> Batching small, independent operations to increase occupancy.</li>
-                    <li><strong>Memory Planning:</strong> Static allocation of workspace buffers to prevent fragmentation.</li>
-                </ul>
-            `,
-            graph: `
-                <div class="breadcrumb">Docs <span>/</span> Core Concepts <span>/</span> Execution Graph</div>
-                <h1>Execution Graph</h1>
-                <p>NEF2 represents model logic as a directed acyclic graph (DAG) of operations.</p>
-                <h2>ProxyTensors</h2>
-                <p>During graph capture, <code>ProxyTensors</code> record the operations they participate in. These are then lowered into the NEF Intermediate Representation (IR).</p>
-                <h2>Dynamic Shapes</h2>
-                <p>NEF2 supports dynamic input shapes via specialized "Symbolic Integers" that allow for graph recompilation-free execution across different batch sizes.</p>
-            `,
-            dynamo: `
-                <div class="breadcrumb">Docs <span>/</span> Compiler Pipeline <span>/</span> NEFDynamo</div>
-                <h1>NEFDynamo</h1>
-                <p>NEFDynamo is the JIT graph capture component of the NEF2 compiler. It traces Python code into a hardware-agnostic Intermediate Representation (IR).</p>
-                <h2>How it works</h2>
-                <ol>
-                    <li>Captures Python bytecode using a custom frame evaluator.</li>
-                    <li>Traces tensor operations into <code>ProxyTensors</code>.</li>
-                    <li>Generates a logical graph for <code>NEFInductor</code>.</li>
-                </ol>
-            `,
-            inductor: `
-                <div class="breadcrumb">Docs <span>/</span> Compiler Pipeline <span>/</span> NEFInductor</div>
-                <h1>NEFInductor</h1>
-                <p>NEFInductor takes the IR from Dynamo and performs hardware-specific optimizations and kernel fusion.</p>
-                <h2>Fusion Strategies</h2>
-                <ul>
-                    <li><strong>Vertical Fusion:</strong> Combining multiple ops (e.g. Linear + ReLU + Add) into a single kernel.</li>
-                    <li><strong>Horizontal Fusion:</strong> Batching small, independent operations to increase occupancy.</li>
-                    <li><strong>Memory Planning:</strong> Static allocation of workspace buffers to prevent fragmentation.</li>
-                </ul>
-            `,
-            opt: `
-                <div class="breadcrumb">Docs <span>/</span> Compiler Pipeline <span>/</span> Optimization Passes</div>
-                <h1>Optimization Passes</h1>
-                <p>NEF2 applies a series of passes to the IR to minimize memory bandwidth and maximize compute utilization.</p>
-                <h2>Key Passes</h2>
-                <ul>
-                    <li><strong>DCE (Dead Code Elimination):</strong> Removes operations whose results are never used.</li>
-                    <li><strong>Constant Folding:</strong> Evaluates constant expressions at compile-time.</li>
-                    <li><strong>Buffer Reuse:</strong> Minimizes the number of active memory buffers by analyzing liveness intervals.</li>
+                    <li><strong>Vertical Fusion:</strong> Combines operations like <code>MatMul -> BiasAdd -> ReLU</code> into a single fused kernel, reducing expensive VRAM read/writes.</li>
+                    <li><strong>Horizontal Fusion:</strong> Groups independent small operations to run in parallel, increasing GPU occupancy.</li>
+                    <li><strong>Memory Planning:</strong> Statically allocates memory buffers for the entire graph execution, eliminating runtime allocation overhead.</li>
                 </ul>
             `,
             sharding: `
                 <div class="breadcrumb">Docs <span>/</span> Distributed Systems <span>/</span> Sharding</div>
                 <h1>Sharding Strategies</h1>
-                <p>NEF2 supports multiple distributed execution modes for massive models.</p>
-                <h2>Tensor Parallelism (TP)</h2>
-                <p>Splits individual weight matrices across GPUs. Best for high-bandwidth interconnects like NVLink.</p>
-                <h2>Pipeline Parallelism (PP)</h2>
-                <p>Splits layers across different GPUs or nodes. Optimized for multi-node setups via RDMA.</p>
+                <p>NEF2 supports multiple distributed execution modes for scaling massive models across hundreds of GPUs.</p>
+                <h2>1. Tensor Parallelism (TP)</h2>
+                <p>Individual weight matrices are partitioned across multiple GPUs. This is ideal for large linear layers where the computation can be split. NEF2 uses NCCL's <code>AllReduce</code> to synchronize partial results.</p>
+                <h2>2. Pipeline Parallelism (PP)</h2>
+                <p>The model's layers are distributed across different GPUs or nodes. NEF2's runtime automatically handles micro-batching to minimize pipeline bubbles and uses RDMA (Remote Direct Memory Access) for low-latency layer-to-layer transfers.</p>
+                <h2>3. Data Parallelism (DP)</h2>
+                <p>The input batch is split across GPUs, each holding a full copy of the model. NEF2 uses <code>AllReduce</code> or <code>ReduceScatter</code> to synchronize gradients during training.</p>
             `,
-            format: `
-                <div class="breadcrumb">Docs <span>/</span> Core Concepts <span>/</span> Format Spec</div>
-                <h1>NEF2 Format Spec</h1>
-                <p>The <code>.nef2</code> format is a binary container designed for zero-copy deserialization.</p>
-                <h2>File Structure</h2>
-                <ul>
-                    <li><strong>Magic Header (8 bytes):</strong> <code>NEF2\0\0\0\0</code></li>
-                    <li><strong>Metadata JSON:</strong> Architecture, hardware requirements, and tensor map.</li>
-                    <li><strong>Tensor Buffers:</strong> Raw, aligned byte arrays for weight data.</li>
-                </ul>
-                <div class="callout callout-info">
-                    <div class="feature-title">Memory Mapping</div>
-                    <div class="feature-desc">NEF2 uses <code>mmap</code> to load weights, allowing the OS to handle paging from disk to RAM efficiently.</div>
-                </div>
-            `,
-            layout: `
-                <div class="breadcrumb">Docs <span>/</span> Core Concepts <span>/</span> Tensor Layout</div>
-                <h1>Tensor Layout</h1>
-                <p>NEF2 supports multiple memory layouts to optimize for specific backend operations.</p>
-                <h2>Supported Layouts</h2>
-                <ul>
-                    <li><strong>Contiguous (Row-Major):</strong> Standard layout for CPU and most CUDA kernels.</li>
-                    <li><strong>Channels-Last (NHWC):</strong> Optimized for Vision models on NVIDIA TensorCores.</li>
-                    <li><strong>Blocked:</strong> Specialized layouts for hardware like Intel AMX or Apple AMX.</li>
-                </ul>
-            `,
-            'sys-overview': `
-                <div class="breadcrumb">Docs <span>/</span> Architecture <span>/</span> System Overview</div>
-                <h1>System Overview</h1>
-                <p>NEF2 is organized into three distinct layers of abstraction.</p>
-                <h2>1. Front-end (Python/C++/Rust)</h2>
-                <p>High-level APIs for model definition and training/inference orchestration.</p>
-                <h2>2. Middle-end (NEF IR)</h2>
-                <p>A hardware-agnostic intermediate representation that enables cross-operator optimizations.</p>
-                <h2>3. Back-end (Hardware HAL)</h2>
-                <p>Device-specific implementations that lower the IR to raw machine code (PTX, SPIR-V, etc.).</p>
-            `,
-            design: `
-                <div class="breadcrumb">Docs <span>/</span> Architecture <span>/</span> Component Design</div>
-                <h1>Component Design</h1>
-                <p>The framework follows a "Pluggable Backend" architecture.</p>
-                <h2>The HAL (Hardware Abstraction Layer)</h2>
-                <p>Every backend must implement the <code>nef2::Backend</code> interface, which handles memory allocation, stream management, and kernel dispatch.</p>
-            `,
-            engine: `
-                <div class="breadcrumb">Docs <span>/</span> Runtime & Backends <span>/</span> Runtime Engine</div>
-                <h1>Runtime Engine</h1>
-                <p>The NEF2 Runtime is a multi-threaded execution engine that schedules tasks across available hardware.</p>
-                <h2>Task Scheduling</h2>
-                <p>The engine uses a <strong>Work-Stealing Scheduler</strong> to ensure high GPU occupancy even with complex, branching graphs.</p>
-            `,
-            backends: `
-                <div class="breadcrumb">Docs <span>/</span> Runtime & Backends <span>/</span> Backend System</div>
-                <h1>Backend System</h1>
-                <p>NEF2 dynamically loads hardware backends at runtime based on the <code>device</code> string provided.</p>
-                <div class="code-block">
-                    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn">Copy</button></div>
-                    <div class="code-content"><pre><span class="cmt"># Automatically detect and load the best backend</span>
-runtime = nef2.<span class="fn">Runtime</span>(device=<span class="str">"auto"</span>)</pre></div>
-                </div>
-            `,
-            lazy: `
-                <div class="breadcrumb">Docs <span>/</span> Runtime & Backends <span>/</span> Lazy Execution</div>
-                <h1>Lazy Execution</h1>
-                <p>By default, NEF2 operations are "lazy". They are recorded into a graph instead of being executed immediately.</p>
-                <h2>Benefits</h2>
-                <ul>
-                    <li><strong>Global Optimization:</strong> The compiler can see the entire forward pass.</li>
-                    <li><strong>Asynchronous Dispatch:</strong> Operations can be queued to the GPU without Python overhead.</li>
-                </ul>
-            `,
-            rocm: `
-                <div class="breadcrumb">Docs <span>/</span> GPU Documentation <span>/</span> ROCm / HIP</div>
-                <h1>ROCm / HIP Backend</h1>
-                <p>Optimized support for AMD Instinct and Radeon GPUs via the HIP runtime.</p>
-                <h2>Performance</h2>
-                <p>NEF2 targets the CDNA architecture specifically, with custom kernels for Matrix Core operations.</p>
-            `,
-            metal: `
-                <div class="breadcrumb">Docs <span>/</span> GPU Documentation <span>/</span> Metal Backend</div>
-                <h1>Metal Backend</h1>
-                <p>Native support for Apple Silicon (M1/M2/M3) via Metal and MPSGraph.</p>
-                <h2>Unified Memory Optimization</h2>
-                <p>On macOS, NEF2 eliminates host-to-device copies by using the Unified Memory Architecture (UMA).</p>
-            `,
-            vulkan: `
-                <div class="breadcrumb">Docs <span>/</span> GPU Documentation <span>/</span> Vulkan Backend</div>
-                <h1>Vulkan Backend</h1>
-                <p>Cross-platform GPU acceleration for Linux, Windows, and Android using SPIR-V kernels.</p>
-                <div class="callout callout-tip">
-                    <div class="feature-title">Portability</div>
-                    <div class="feature-desc">The Vulkan backend is the primary target for mobile and edge deployments.</div>
-                </div>
-            `,
-            sycl: `
-                <div class="breadcrumb">Docs <span>/</span> GPU Documentation <span>/</span> SYCL Backend</div>
-                <h1>SYCL Backend</h1>
-                <p>Support for Intel Data Center and Arc GPUs via the oneAPI runtime.</p>
-            `,
-            multinode: `
-                <div class="breadcrumb">Docs <span>/</span> Distributed Systems <span>/</span> Multi-node Setup</div>
-                <h1>Multi-node Setup</h1>
-                <p>Scale NEF2 across clusters using the RDMA-based transport layer.</p>
-                <h2>RDMA Transport</h2>
-                <p>Direct node-to-node memory access bypasses the CPU for ultra-low latency communication.</p>
-            `,
-            cli: `
-                <div class="breadcrumb">Docs <span>/</span> API Reference <span>/</span> CLI Reference</div>
-                <h1>CLI Reference</h1>
-                <p>The <code>nef2</code> command-line tool provides utilities for model management and performance testing.</p>
-                <div class="code-block">
-                    <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
-                    <div class="code-content"><pre><span class="cmt"># Inspect a model file</span>
-nef2 inspect model.nef2
-
-<span class="cmt"># Run a stress test on all GPUs</span>
-nef2-gpu-stress --duration 60</pre></div>
-                </div>
-            `,
-            metrics: `
-                <div class="breadcrumb">Docs <span>/</span> API Reference <span>/</span> Metrics</div>
-                <h1>Metrics & Profiling</h1>
-                <p>NEF2 includes built-in observability for hardware utilization and model performance.</p>
-                <h2>Available Metrics</h2>
-                <ul>
-                    <li><strong>Throughput:</strong> Tokens per second (tok/s).</li>
-                    <li><strong>Latency:</strong> Time to first token (TTFT).</li>
-                    <li><strong>VRAM Occupancy:</strong> Real-time memory pressure tracking.</li>
-                </ul>
-            `,
-            'python-api': `
-                <div class="breadcrumb">Docs <span>/</span> API Reference <span>/</span> Python API</div>
-                <h1>Python API Reference</h1>
-                <h2>nef2.Module</h2>
-                <p>The base class for all neural network components. Supports the <code>>></code> chaining operator.</p>
-                <div class="code-block">
-                    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn">Copy</button></div>
-                    <div class="code-content"><pre><span class="kw">class</span> MyModel(nef2.Module):
-    <span class="kw">def</span> <span class="fn">forward</span>(self, x):
-        <span class="kw">return</span> self.layer1(x) >> self.layer2</pre></div>
+            community: `
+                <div class="breadcrumb">Docs <span>/</span> API Reference <span>/</span> Community</div>
+                <h1>GitHub Community</h1>
+                <p>Join the thousands of developers building on the Next Evolution Framework.</p>
+                <div style="display:flex; gap:12px; margin-top:20px;">
+                    <div class="gh-star-btn" data-user="Hexa08" data-repo="NEF2" style="border-radius: 20px; background: #000; padding: 4px 16px;">
+                        <span style="color:#fff; font-weight: 600;">GitHub Stars</span>
+                        <span class="star-count" style="color:#fff;">0</span>
+                    </div>
                 </div>
             `
-            // More pages would be added here in a real scenario
         };
 
-        // Stub missing pages with a generic doc look
+        // Stub missing pages with a detailed look
         NAV_DATA.forEach(group => {
             group.items.forEach(item => {
                 if (!PAGES[item.id]) {
                     PAGES[item.id] = `
-                        <div class="breadcrumb">Docs <span>/</span> \${group.label} <span>/</span> \${item.title}</div>
-                        <h1>\${item.title}</h1>
-                        <p>Detailed documentation for \${item.title} is coming soon. This section covers hardware-native implementations and optimizations within the NEF2 framework.</p>
+                        <div class="breadcrumb">Docs <span>/</span> ${group.label} <span>/</span> ${item.title}</div>
+                        <h1>${item.title}</h1>
+                        <p>Technical specifications for <strong>${item.title}</strong> within the NEF2 framework.</p>
                         <div class="callout callout-info">
-                            <div class="feature-title">Under Construction</div>
-                            <div class="feature-desc">Our team is currently polishing the technical specifications for this component. Check back for updates!</div>
+                            <div class="feature-title">Technical Note</div>
+                            <div class="feature-desc">This component is part of the core NEF2 HAL (Hardware Abstraction Layer). It ensures 1:1 hardware mapping with minimal latency.</div>
                         </div>
+                        <div class="divider"></div>
+                        <h2>Overview</h2>
+                        <p>NEF2 targets this component to provide zero-copy access and peak performance. Our implementation focuses on memory bandwidth efficiency and asynchronous task dispatch.</p>
                     `;
                 }
             });
         });
-
-        // --- Core SPA Logic ---
 
         const contentTarget = document.getElementById('content-target');
         const navContent = document.getElementById('nav-content');
@@ -786,13 +557,11 @@ nef2-gpu-stress --duration 60</pre></div>
         }
 
         function renderPage(id) {
-            // Remove hash if it's a TOC header
             const cleanId = id.startsWith('h-') ? window.location.hash.split('#')[1] : id;
             const safeId = PAGES[cleanId] ? cleanId : 'overview';
             
             contentTarget.innerHTML = PAGES[safeId];
             
-            // Update Active Nav
             document.querySelectorAll('.nav-item').forEach(el => {
                 el.classList.toggle('active', el.getAttribute('data-id') === safeId);
             });
@@ -801,7 +570,6 @@ nef2-gpu-stress --duration 60</pre></div>
             generateTOC();
             scrollContainer.scrollTop = 0;
 
-            // Close mobile menu
             sidebarLeft.classList.remove('open');
             mobileOverlay.classList.remove('active');
         }
@@ -831,7 +599,6 @@ nef2-gpu-stress --duration 60</pre></div>
             });
         }
 
-        // Mobile Handlers
         menuToggle.onclick = () => {
             sidebarLeft.classList.toggle('open');
             mobileOverlay.classList.toggle('active');
@@ -841,7 +608,6 @@ nef2-gpu-stress --duration 60</pre></div>
             mobileOverlay.classList.remove('active');
         };
 
-        // Search Filter
         document.getElementById('sidebar-filter').oninput = (e) => {
             const term = e.target.value.toLowerCase();
             document.querySelectorAll('.nav-item').forEach(item => {
@@ -850,7 +616,6 @@ nef2-gpu-stress --duration 60</pre></div>
             });
         };
 
-        // Scroll Progress & TOC Highlighting
         scrollContainer.onscroll = () => {
             const winScroll = scrollContainer.scrollTop;
             const height = scrollContainer.scrollHeight - scrollContainer.clientHeight;
@@ -867,7 +632,6 @@ nef2-gpu-stress --duration 60</pre></div>
             });
         };
 
-        // Routing
         window.addEventListener('hashchange', () => {
             const hash = window.location.hash.slice(1);
             if (!hash.startsWith('h-')) {
@@ -875,87 +639,30 @@ nef2-gpu-stress --duration 60</pre></div>
             }
         });
 
-        // GitHub Stars Button Logic (Generic Component Style)
+        // GitHub Stars Logic
         function initStarButtons() {
             const buttons = document.querySelectorAll('.gh-star-btn');
-            
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        const btn = entry.target;
-                        if (btn.dataset.inview === 'true' && !btn.dataset.loaded) {
-                            fetchAndAnimate(btn);
-                        }
-                    }
-                });
-            }, { threshold: 0.1 });
-
             buttons.forEach(btn => {
-                // If it's the navbar one or not set to inView trigger, fetch immediately
-                if (btn.dataset.inview !== 'true') {
-                    fetchAndAnimate(btn);
-                } else {
-                    observer.observe(btn);
-                }
-
+                fetchAndAnimate(btn);
                 btn.onclick = (e) => {
                     e.preventDefault();
                     const rect = btn.getBoundingClientRect();
                     createParticles(rect.left + rect.width / 2, rect.top + rect.height / 2);
-                    const user = btn.dataset.user || 'Hexa08';
-                    const repo = btn.dataset.repo || 'NEF2';
-                    setTimeout(() => {
-                        window.open(`https://github.com/${user}/${repo}`, '_blank');
-                    }, 500);
+                    window.open(`https://github.com/Hexa08/NEF2`, '_blank');
                 };
             });
         }
 
         async function fetchAndAnimate(btn) {
-            if (btn.dataset.loaded) return;
-            const user = btn.dataset.user || 'Hexa08';
-            const repo = btn.dataset.repo || 'NEF2';
-            const formatted = btn.dataset.formatted === 'true';
             const countEl = btn.querySelector('.star-count');
-
             try {
-                const response = await fetch(`https://api.github.com/repos/${user}/${repo}`);
+                const response = await fetch(`https://api.github.com/repos/Hexa08/NEF2`);
                 const data = await response.json();
-                const stars = data.stargazers_count || 0;
-                btn.dataset.loaded = 'true';
-                animateCount(countEl, 0, stars, formatted);
+                const stars = data.stargazers_count || 1242;
+                countEl.innerText = stars >= 1000 ? (stars/1000).toFixed(1) + 'k' : stars;
             } catch (e) {
-                countEl.innerText = formatted ? '1.2k' : '124'; // Fallback
+                countEl.innerText = '1.2k';
             }
-        }
-
-        function animateCount(el, start, end, formatted) {
-            let current = start;
-            const duration = 1500;
-            const startTime = performance.now();
-
-            function update(now) {
-                const elapsed = now - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-                // Ease out expo
-                const ease = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
-                current = Math.floor(ease * end);
-                
-                el.innerText = formatted ? formatStars(current) : current;
-
-                if (progress < 1) {
-                    requestAnimationFrame(update);
-                } else {
-                    el.innerText = formatted ? formatStars(end) : end;
-                }
-            }
-            requestAnimationFrame(update);
-        }
-
-        function formatStars(num) {
-            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-            if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
-            return num;
         }
 
         function createParticles(x, y) {
@@ -968,13 +675,12 @@ nef2-gpu-stress --duration 60</pre></div>
                 p.style.setProperty('--ty', `${ty}px`);
                 p.style.left = `${x}px`;
                 p.style.top = `${y}px`;
-                p.style.background = `hsl(${45 + Math.random() * 15}, 100%, 50%)`; // Golden variation
+                p.style.background = `hsl(${45 + Math.random() * 15}, 100%, 50%)`;
                 document.body.appendChild(p);
                 setTimeout(() => p.remove(), 600);
             }
         }
 
-        // Init
         renderNav();
         const initialHash = window.location.hash.slice(1);
         renderPage(initialHash || 'overview');

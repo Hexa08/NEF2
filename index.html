@@ -295,10 +295,10 @@
                 { id: 'config', title: 'Configuration' }
             ]},
             { label: 'Core Concepts', items: [
-                { id: 'format', title: 'Format Spec' },
                 { id: 'layout', title: 'Tensor Layout' },
                 { id: 'memory', title: 'Memory Model' },
                 { id: 'turboquant', title: 'TurboQuant' },
+                { id: 'format', title: 'Format Spec' },
                 { id: 'graph', title: 'Execution Graph' }
             ]},
             { label: 'Architecture', items: [
@@ -416,87 +416,460 @@ output = model.<span class="fn">forward</span>(tokens)
 <span class="fn">print</span>(output)</pre></div>
                 </div>
             `,
+            layout: `
+                <div class="breadcrumb">Docs <span>/</span> Core Concepts <span>/</span> Tensor Layout</div>
+                <h1>Tensor Memory Layouts</h1>
+                
+                <section>
+                    <h3>What is it?</h3>
+                    <p>A tensor layout is the physical arrangement of a multi-dimensional data structure in the computer's one-dimensional memory. While we think of tensors as 2D matrices or 3D volumes, hardware sees a long row of memory addresses. The layout defines the mapping between a coordinate (like row 2, column 5) and its actual location in that row.</p>
+                </section>
+
+                <section>
+                    <h3>Why does it exist?</h3>
+                    <p>Memory layouts solve the "Data Locality" problem. Hardware is most efficient when it can read data sequentially. If your math operation needs to access elements that are scattered across different parts of memory, the system spends more time waiting for data to arrive (memory latency) than it does performing calculations. Choosing the right layout aligns the data with the hardware's natural reading pattern.</p>
+                </section>
+
+                <section>
+                    <h3>How does it work?</h3>
+                    <p>Imagine organizing a stack of 100 books. You have a long shelf that fits exactly 100 books. You could store them by grouping all books by the same author together, or by grouping all books of the same genre. Your choice depends on how you plan to find them later. If you usually read everything by one author, the "Author-Major" layout is fastest. Tensor layouts use mathematical "strides"—the number of elements to skip to move one step in a given dimension—to navigate this shelf.</p>
+                </section>
+
+                <div class="divider"></div>
+
+                <h2>Variant 1: Contiguous (Row-Major)</h2>
+                <p>The standard layout where elements in the same row are stored adjacent to each other.</p>
+                <div class="code-block">
+                    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn">Copy</button></div>
+                    <div class="code-content"><pre><span class="kw">import</span> nef2
+<span class="cmt"># Elements [1, 2, 3] are physically side-by-side in memory</span>
+x = nef2.<span class="fn">Tensor</span>([[1, 2, 3], [4, 5, 6]], layout=<span class="str">"contiguous"</span>)</pre></div>
+                </div>
+                <p><strong>When to use:</strong> The default choice for general math, MLPs, and cross-platform compatibility.</p>
+
+                <h2>Variant 2: Channels-Last (NHWC)</h2>
+                <p>Stores the channel values (like R, G, B) for a single pixel together in memory, rather than storing all Red values for the whole image first.</p>
+                <div class="code-block">
+                    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn">Copy</button></div>
+                    <div class="code-content"><pre><span class="cmt"># Pixel (0,0)'s RGB values are stored at memory addresses N, N+1, N+2</span>
+image = nef2.<span class="fn">randn</span>((1, 224, 224, 3), layout=<span class="str">"channels_last"</span>)</pre></div>
+                </div>
+                <p><strong>When to use:</strong> Critical for Vision Models (CNNs) on modern NVIDIA GPUs to utilize TensorCore acceleration.</p>
+
+                <h2>Variant 3: Blocked (Tile-Based)</h2>
+                <p>Breaks the tensor into small "tiles" (e.g., 8x8 blocks) to match the internal register sizes of specialized hardware.</p>
+                <div class="code-block">
+                    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn">Copy</button></div>
+                    <div class="code-content"><pre><span class="cmt"># Handled automatically by the compiler for NPU/AMX targets</span>
+weight = model.layer.to_layout(<span class="str">"blocked"</span>, tile_size=(16, 16))</pre></div>
+                </div>
+                <p><strong>When to use:</strong> Use only for deployment on high-end NPUs or CPUs with specialized matrix units (Intel AMX/Apple AMX).</p>
+
+                <div class="divider"></div>
+
+                <h3>Common Mistakes</h3>
+                <ul>
+                    <li><strong>Layout Mismatch:</strong> Passing a Channels-Last tensor to a kernel that expects Contiguous data. This forces an expensive "reorder" copy that kills performance.</li>
+                    <li><strong>Ignoring Strides:</strong> Assuming you can always reach the next element with <code>ptr + 1</code>. This is only true for the innermost dimension of a contiguous tensor.</li>
+                </ul>
+
+                <p><strong>Key takeaway:</strong> Tensor layout is the bridge between mathematical logic and physical memory efficiency; picking the wrong one is the most common cause of "hardware idling."</p>
+            `,
             memory: `
                 <div class="breadcrumb">Docs <span>/</span> Core Concepts <span>/</span> Memory Model</div>
-                <h1>Memory Model: HyperCache</h1>
-                <p>NEF2 uses <strong>HyperCache</strong>, a tiered memory management system that virtualizes VRAM, System RAM, and NVMe.</p>
-                <h2>Tiered Storage Architecture</h2>
-                <p>HyperCache virtualizes memory by treating VRAM, System RAM, and NVMe as a single unified pool:</p>
+                <h1>HyperCache Memory Model</h1>
+                
+                <section>
+                    <h3>What is it?</h3>
+                    <p>HyperCache is a virtualized memory system that allows NEF2 to run AI models much larger than the available video memory (VRAM). It treats all available storage—VRAM, System RAM, and NVMe SSDs—as a single tiered hierarchy.</p>
+                </section>
+
+                <section>
+                    <h3>Why does it exist?</h3>
+                    <p>Modern Large Language Models (LLMs) often require 100GB+ of memory, while many consumer GPUs have only 8GB or 12GB. HyperCache solves the "Out of Memory" (OOM) error by transparently moving data between fast and slow storage without crashing the program.</p>
+                </section>
+
+                <section>
+                    <h3>How does it work?</h3>
+                    <p>Think of it like a chef in a kitchen. The <strong>VRAM</strong> is the cutting board (tiny but instant), the <strong>RAM</strong> is the fridge (large but you have to walk to it), and the <strong>NVMe</strong> is the basement pantry (huge but slow). HyperCache act as an assistant who looks at the recipe (the model graph) and brings the ingredients from the pantry to the fridge, and then to the cutting board, just seconds before the chef needs them. This process is called "Asynchronous Prefetching."</p>
+                </section>
+
+                <div class="divider"></div>
+
+                <h2>The Three Tiers</h2>
                 <ul>
-                    <li><strong>L1 (VRAM):</strong> Holds active tensors and the KV-cache. Data here is directly accessible by GPU kernels.</li>
-                    <li><strong>L2 (Host RAM):</strong> Stores weights for upcoming layers. NEF2 uses background threads to prefetch weights from RAM to VRAM using asynchronous DMA transfers.</li>
-                    <li><strong>L3 (NVMe):</strong> The .nef2 format supports memory-mapping (mmap), allowing the OS to page weights directly from disk into RAM on demand.</li>
+                    <li><strong>L1 (VRAM):</strong> The "Hot" tier. Data here is directly processed by GPU kernels at 1TB/s+ bandwidth.</li>
+                    <li><strong>L2 (System RAM):</strong> The "Warm" tier. Stores weights for the next few layers. NEF2 uses background DMA (Direct Memory Access) to pull this into VRAM while the GPU is busy calculating.</li>
+                    <li><strong>L3 (NVMe/SSD):</strong> The "Cold" tier. The entire model sits here in .nef2 format, mapped into memory via <code>mmap</code>. Elements are paged in only when needed.</li>
                 </ul>
-                <div class="callout callout-tip">
-                    <div class="feature-title">TurboQuant Integration</div>
-                    <div class="feature-desc">As weights move from L2 to L1, HyperCache can apply on-the-fly dequantization (e.g., NF4 to FP16) using specialized conversion kernels, minimizing bandwidth usage.</div>
+
+                <div class="code-block">
+                    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn">Copy</button></div>
+                    <div class="code-content"><pre><span class="kw">import</span> nef2
+<span class="cmt"># Load a 70B model on a single 16GB GPU</span>
+runtime = nef2.<span class="fn">Runtime</span>(device=<span class="str">"cuda"</span>, memory_mode=<span class="str">"hypercache"</span>)
+model = runtime.<span class="fn">load</span>(<span class="str">"llama-3-70b.nef2"</span>)</pre></div>
                 </div>
+
+                <div class="divider"></div>
+
+                <h3>Common Mistakes</h3>
+                <ul>
+                    <li><strong>Synchronous Loading:</strong> Forcing a full model load into VRAM manually. This bypasses HyperCache and will cause an OOM error if the model is too large.</li>
+                    <li><strong>Slow Disk:</strong> Using a mechanical hard drive (HDD) for L3. HyperCache depends on the low latency of NVMe SSDs to stay ahead of the GPU.</li>
+                </ul>
+
+                <p><strong>Key takeaway:</strong> HyperCache eliminates memory limits by treating VRAM as a fast cache for the model rather than its permanent home.</p>
             `,
             cuda: `
                 <div class="breadcrumb">Docs <span>/</span> GPU Documentation <span>/</span> CUDA Backend</div>
-                <h1>CUDA Backend</h1>
-                <p>The CUDA backend is NEF2's flagship target, supporting direct PTX (Parallel Thread Execution) assembly generation for maximum control over hardware.</p>
+                <h1>CUDA Backend & PTX Generation</h1>
+                
+                <section>
+                    <h3>What is it?</h3>
+                    <p>The CUDA backend is the engine that allows NEF2 to talk directly to NVIDIA GPUs. Instead of using pre-made libraries, it writes custom instructions in PTX (Parallel Thread Execution)—which is basically assembly language for GPUs.</p>
+                </section>
+
+                <section>
+                    <h3>Why does it exist?</h3>
+                    <p>Standard libraries like cuBLAS are fast, but they are "black boxes." If you want to combine a Matrix Multiplication with a custom Activation function, standard frameworks have to run two separate steps. NEF2 writes a single "fused" PTX kernel that does both at once, saving massive amounts of memory bandwidth.</p>
+                </section>
+
+                <section>
+                    <h3>How does it work?</h3>
+                    <p>Imagine you are a manager of a factory. Normally, you hire a "Consultant" (like PyTorch) who hires "Subcontractors" (like cuDNN). This works, but it's slow and expensive. NEF2 is like a manager who speaks the factory's native language perfectly. You walk onto the floor and give the machines direct, specific orders. The machine (the GPU) doesn't have to wait for instructions to be translated; it just works at full speed.</p>
+                </section>
+
+                <div class="divider"></div>
+
                 <h2>Direct PTX Integration</h2>
-                <p>Unlike traditional frameworks that rely on high-level libraries, NEF2 generates optimized PTX kernels at runtime. This allows for:</p>
-                <ul>
-                    <li><strong>Reduced Dispatch Overhead:</strong> By communicating directly with the CUDA Driver API (nvcuda), NEF2 eliminates layers of library abstractions.</li>
-                    <li><strong>Custom Kernel Fusion:</strong> The compiler can fuse any sequence of operations into a single PTX kernel, optimizing register usage and memory bandwidth.</li>
-                    <li><strong>Sm-Specific Tuning:</strong> Kernels are automatically tuned for the specific Compute Capability (SM version) of the target GPU.</li>
-                </ul>
                 <div class="code-block">
                     <div class="code-header"><span class="code-lang">ptx</span><button class="copy-btn">Copy</button></div>
-                    <div class="code-content"><pre><span class="cmt">// Example: Optimized vector addition in PTX</span>
+                    <div class="code-content"><pre><span class="cmt">// NEF2 generates this assembly at runtime</span>
 .visible .entry vadd(.param .u64 a, .param .u64 b, .param .u64 out, .param .u32 n) {
-    .reg .pred %p;
-    .reg .b32 %r&lt;6&gt;;
-    .reg .b64 %rd&lt;8&gt;;
-    .reg .f32 %f&lt;4&gt;;
     ld.param.u64 %rd1, [a];
     ld.param.u64 %rd2, [b];
-    ld.param.u64 %rd3, [out];
-    ld.param.u32 %r4, [n];
-    <span class="cmt">// ... (Compute grid index and perform addition)</span>
+    // Add logic here...
 }</pre></div>
                 </div>
+
+                <div class="divider"></div>
+
+                <h3>Common Mistakes</h3>
+                <ul>
+                    <li><strong>Driver Mismatch:</strong> Using an old NVIDIA driver that doesn't support the PTX version generated by NEF2. Always keep drivers updated to CUDA 12.x levels.</li>
+                    <li><strong>Context Overhead:</strong> Creating multiple <code>nef2.Runtime</code> objects. Each one creates a new CUDA Context, which consumes VRAM. Use a single shared runtime.</li>
+                </ul>
+
+                <p><strong>Key takeaway:</strong> Direct PTX generation bypasses library overhead, allowing for "impossible" optimizations like fusing hundreds of operations into a single GPU task.</p>
             `,
             dynamo: `
                 <div class="breadcrumb">Docs <span>/</span> Compiler Pipeline <span>/</span> NEFDynamo</div>
-                <h1>NEFDynamo</h1>
-                <p>NEFDynamo is the JIT graph capture component of the NEF2 compiler. It traces Python code into a hardware-agnostic Intermediate Representation (IR).</p>
-                <h2>The Tracing Process</h2>
-                <p>When a function is decorated or passed to <code>nef2.compile</code>, Dynamo begins a tracing process:</p>
-                <ol>
-                    <li><strong>Bytecode Analysis:</strong> It intercepts Python execution to capture the sequence of tensor operations.</li>
-                    <li><strong>ProxyTensor Tracing:</strong> Instead of real data, Dynamo passes <code>ProxyTensors</code> through the code. These proxies record every operation they participate in.</li>
-                    <li><strong>IR Generation:</strong> The recorded operations are serialized into the NEF Intermediate Representation (IR), which is a directed acyclic graph (DAG).</li>
-                </ol>
-                <div class="callout callout-tip">
-                    <div class="feature-title">Dynamic Control Flow</div>
-                    <div class="feature-desc">NEFDynamo uses a custom frame evaluator to handle Python loops and conditionals, ensuring that the captured graph remains accurate even with complex logic.</div>
+                <h1>NEFDynamo: Graph Capture</h1>
+                
+                <section>
+                    <h3>What is it?</h3>
+                    <p>NEFDynamo is a "spy" that watches your Python code as it runs. It records the math operations you perform on tensors and builds a flowchart (a Graph) of your model's logic.</p>
+                </section>
+
+                <section>
+                    <h3>Why does it exist?</h3>
+                    <p>Python is slow. If we run a model line-by-line in Python, the GPU spends most of its time waiting for the Python interpreter to figure out what the next line is. Dynamo "captures" the whole model once, so we can hand the entire flowchart to a fast C++ engine that doesn't need Python anymore.</p>
+                </section>
+
+                <section>
+                    <h3>How does it work?</h3>
+                    <p>Dynamo uses <strong>ProxyTensors</strong>. When you say <code>c = a + b</code>, Dynamo doesn't actually add the numbers. It gives you a "Proxy" result that says, "I am the result of adding A and B." It then writes this down in its notebook. At the end, it has a complete list of every operation needed to get from your inputs to your outputs.</p>
+                </section>
+
+                <div class="divider"></div>
+
+                <h2>Tracing Example</h2>
+                <div class="code-block">
+                    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn">Copy</button></div>
+                    <div class="code-content"><pre><span class="kw">def</span> <span class="fn">my_model</span>(x, w):
+    <span class="kw">return</span> (x @ w).relu()
+
+<span class="cmt"># Dynamo "traces" this function into a Graph IR</span>
+graph = nef2.compiler.<span class="fn">trace</span>(my_model, example_x, example_w)</pre></div>
                 </div>
+
+                <div class="divider"></div>
+
+                <h3>Common Mistakes</h3>
+                <ul>
+                    <li><strong>Python Side-Effects:</strong> Putting a <code>print()</code> statement inside a traced function. Dynamo only captures tensor operations; the <code>print</code> will only happen once during tracing, not during model execution.</li>
+                    <li><strong>Dynamic Shapes:</strong> Changing the size of your input every time you run. This can force Dynamo to "re-trace" the model, which is slow. Use Symbolic Integers for variable sizes.</li>
+                </ul>
+
+                <p><strong>Key takeaway:</strong> NEFDynamo converts slow Python logic into a fast, static execution graph that the hardware can understand directly.</p>
             `,
             inductor: `
                 <div class="breadcrumb">Docs <span>/</span> Compiler Pipeline <span>/</span> NEFInductor</div>
-                <h1>NEFInductor</h1>
-                <p>NEFInductor takes the IR from Dynamo and performs hardware-specific optimizations and kernel fusion.</p>
-                <h2>Fusion Engine</h2>
-                <p>The core of NEFInductor is its pattern-matching fusion engine. It identifies sequences of operations that can be combined into a single hardware kernel.</p>
+                <h1>NEFInductor: Kernel Fusion</h1>
+                
+                <section>
+                    <h3>What is it?</h3>
+                    <p>NEFInductor is the "optimizer" that takes the flowchart from Dynamo and figures out how to make it run as fast as possible. Its main job is <strong>Kernel Fusion</strong>—merging multiple math steps into one.</p>
+                </section>
+
+                <section>
+                    <h3>Why does it exist?</h3>
+                    <p>In modern AI, the bottleneck isn't "math speed," it's "memory speed." Moving data from the GPU's memory to its math units and back is expensive. If you do three operations (Add, Multiply, ReLU) separately, you move data back and forth three times. Inductor merges them so you move data once and do all three math steps in one go.</p>
+                </section>
+
+                <section>
+                    <h3>How does it work?</h3>
+                    <p>Think of it like a delivery driver. If you have 10 packages for the same street, a bad driver (standard framework) would drive from the warehouse to the street 10 separate times. Inductor is the dispatcher who sees all 10 packages on the map and puts them in one truck for a single trip. It looks for "patterns" in your graph (like <code>Linear -> ReLU</code>) and replaces them with a single "Fused" instruction.</p>
+                </section>
+
+                <div class="divider"></div>
+
+                <h2>Optimization Types</h2>
                 <ul>
-                    <li><strong>Vertical Fusion:</strong> Combines operations like <code>MatMul -> BiasAdd -> ReLU</code> into a single fused kernel, reducing expensive VRAM read/writes.</li>
-                    <li><strong>Horizontal Fusion:</strong> Groups independent small operations to run in parallel, increasing GPU occupancy.</li>
-                    <li><strong>Memory Planning:</strong> Statically allocates memory buffers for the entire graph execution, eliminating runtime allocation overhead.</li>
+                    <li><strong>Vertical Fusion:</strong> Merging steps that happen one after another (e.g., Matrix Mul -> Activation).</li>
+                    <li><strong>Horizontal Fusion:</strong> Merging independent steps that can happen at the same time (e.g., three different Attention heads).</li>
                 </ul>
+
+                <div class="code-block">
+                    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn">Copy</button></div>
+                    <div class="code-content"><pre><span class="cmt"># This happens automatically when you use nef2.compile</span>
+compiled_fn = nef2.<span class="fn">compile</span>(my_model)
+<span class="cmt"># Inductor has now fused the operations inside my_model</span></pre></div>
+                </div>
+
+                <div class="divider"></div>
+
+                <h3>Common Mistakes</h3>
+                <ul>
+                    <li><strong>Over-Fusion:</strong> Trying to fuse too many operations into a single kernel, which can run out of "Registers" (tiny on-chip memory) and actually slow things down. Inductor usually manages this balance for you.</li>
+                    <li><strong>Incompatible Backends:</strong> Assuming a fused kernel for NVIDIA will work on AMD. Inductor must re-compile for each specific GPU brand.</li>
+                </ul>
+
+                <p><strong>Key takeaway:</strong> NEFInductor is the difference between a collection of individual math operations and a single, high-speed hardware pipeline.</p>
             `,
             sharding: `
                 <div class="breadcrumb">Docs <span>/</span> Distributed Systems <span>/</span> Sharding</div>
                 <h1>Sharding Strategies</h1>
-                <p>NEF2 supports multiple distributed execution modes for scaling massive models across hundreds of GPUs.</p>
-                <h2>1. Tensor Parallelism (TP)</h2>
-                <p>Individual weight matrices are partitioned across multiple GPUs. This is ideal for large linear layers where the computation can be split. NEF2 uses NCCL's <code>AllReduce</code> to synchronize partial results.</p>
-                <h2>2. Pipeline Parallelism (PP)</h2>
-                <p>The model's layers are distributed across different GPUs or nodes. NEF2's runtime automatically handles micro-batching to minimize pipeline bubbles and uses RDMA (Remote Direct Memory Access) for low-latency layer-to-layer transfers.</p>
-                <h2>3. Data Parallelism (DP)</h2>
-                <p>The input batch is split across GPUs, each holding a full copy of the model. NEF2 uses <code>AllReduce</code> or <code>ReduceScatter</code> to synchronize gradients during training.</p>
+                
+                <section>
+                    <h3>What is it?</h3>
+                    <p>Sharding is the process of "breaking" a massive AI model into pieces so it can be handled by multiple GPUs at once. Since models can be hundreds of gigabytes, no single GPU can hold them entirely; sharding spreads the weight.</p>
+                </section>
+
+                <section>
+                    <h3>Why does it exist?</h3>
+                    <p>Large models like GPT-4 or Llama-3-405B physically cannot fit on one GPU. Sharding allows us to treat a cluster of 8, 64, or 1000 GPUs as if they were one giant "Super-GPU" with massive memory and compute power.</p>
+                </section>
+
+                <section>
+                    <h3>How does it work?</h3>
+                    <p>Imagine you are building a giant Lego castle that is too big for your table. You have three choices: 
+                        1. **Data Parallelism:** Hire 4 friends to build 4 identical small castles on 4 tables.
+                        2. **Tensor Parallelism:** Cut the castle vertically and have 4 friends build different "slices" of the same big castle.
+                        3. **Pipeline Parallelism:** Have one friend build the basement, then pass it to the next friend for the first floor, and so on.</p>
+                </section>
+
+                <div class="divider"></div>
+
+                <h2>Option 1: Tensor Parallelism (TP)</h2>
+                <p>Splits a single Matrix Multiplication across GPUs. Each GPU computes part of the output row or column.</p>
+                <p><strong>Best for:</strong> High-speed connections like NVLink within a single server.</p>
+
+                <h2>Option 2: Pipeline Parallelism (PP)</h2>
+                <p>Splits the model's layers across GPUs. GPU 1 handles layers 1-10, GPU 2 handles 11-20.</p>
+                <p><strong>Best for:</strong> Models that are too large for one server's VRAM.</p>
+
+                <h2>Option 3: Data Parallelism (DP)</h2>
+                <p>Keeps the whole model on every GPU but splits the data. Each GPU processes a different batch of images or text.</p>
+                <p><strong>Best for:</strong> Speeding up training when the model *does* fit on one GPU.</p>
+
+                <div class="divider"></div>
+
+                <h3>Decision Guide</h3>
+                <table>
+                    <thead><tr><th>Problem</th><th>Best Sharding</th></tr></thead>
+                    <tbody>
+                        <tr><td>Model is too wide (huge layers)</td><td>Tensor (TP)</td></tr>
+                        <tr><td>Model is too deep (too many layers)</td><td>Pipeline (PP)</td></tr>
+                        <tr><td>Training is too slow</td><td>Data (DP)</td></tr>
+                    </tbody>
+                </table>
+
+                <p><strong>Key takeaway:</strong> Sharding turns a cluster of individual GPUs into a single, unified intelligence fabric by strategically partitioning math and memory.</p>
+            `,
+            rocm: `
+                <div class="breadcrumb">Docs <span>/</span> GPU Documentation <span>/</span> ROCm / HIP</div>
+                <h1>ROCm / HIP Backend</h1>
+                
+                <section>
+                    <h3>What is it?</h3>
+                    <p>The ROCm/HIP backend allows NEF2 to run natively on AMD GPUs (like the Radeon RX series or Instinct MI series). It uses AMD's Heterogeneous-compute Interface for Portability (HIP) to execute code directly on the hardware.</p>
+                </section>
+
+                <section>
+                    <h3>Why does it exist?</h3>
+                    <p>Historically, deep learning has been dominated by NVIDIA (CUDA). The HIP backend provides vendor independence. It exists so that developers can write a NEF2 model once and run it on an AMD GPU with zero code changes and identical high-performance execution.</p>
+                </section>
+
+                <section>
+                    <h3>How does it work?</h3>
+                    <p>HIP acts as a translator. Imagine you have a script written for an actor who only speaks French (CUDA). HIP translates the script into Spanish (ROCm) so a different actor (AMD GPU) can perform it flawlessly. NEF2 loads the <code>libamdhip64.so</code> library at runtime, automatically detecting AMD hardware and dispatching specialized C++ kernels via the HIP API.</p>
+                </section>
+
+                <div class="divider"></div>
+
+                <h2>Initialization</h2>
+                <div class="code-block">
+                    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn">Copy</button></div>
+                    <div class="code-content"><pre><span class="kw">import</span> nef2
+<span class="cmt"># Force the use of the ROCm backend</span>
+runtime = nef2.<span class="fn">Runtime</span>(device=<span class="str">"hip"</span>)
+
+<span class="cmt"># NEF2 automatically checks hipGetDeviceCount()</span>
+<span class="fn">print</span>(nef2.backend.hip.device_count())</pre></div>
+                </div>
+
+                <div class="divider"></div>
+
+                <h3>Common Mistakes</h3>
+                <ul>
+                    <li><strong>Missing Libraries:</strong> Running the HIP backend on Windows without installing the ROCm SDK. NEF2 expects <code>amdhip64.dll</code> on Windows or <code>libamdhip64.so</code> on Linux.</li>
+                    <li><strong>Legacy Hardware:</strong> Trying to run modern Matrix Core operations on older Polaris GPUs (like the RX 580) which lack hardware tensor acceleration.</li>
+                </ul>
+
+                <p><strong>Key takeaway:</strong> The ROCm/HIP backend ensures NEF2 achieves bare-metal performance on AMD hardware through direct C-level API bindings.</p>
+            `,
+            metal: `
+                <div class="breadcrumb">Docs <span>/</span> GPU Documentation <span>/</span> Metal Backend</div>
+                <h1>Metal Backend</h1>
+                
+                <section>
+                    <h3>What is it?</h3>
+                    <p>The Metal backend is NEF2's hardware interface for Apple Silicon (M1, M2, M3, etc.) on macOS. It utilizes Apple's native Metal framework and MPS (Metal Performance Shaders) to accelerate neural network operations.</p>
+                </section>
+
+                <section>
+                    <h3>Why does it exist?</h3>
+                    <p>Macs don't have discrete NVIDIA or AMD GPUs; they have integrated Apple Silicon GPUs. To get any performance out of a Mac, you must speak its native language (Metal). Without it, models would run extremely slowly on the CPU.</p>
+                </section>
+
+                <section>
+                    <h3>How does it work?</h3>
+                    <p>Apple Silicon uses "Unified Memory Architecture" (UMA). Imagine a kitchen where the Chef (CPU) and the Sous-Chef (GPU) share the exact same countertop (Memory). Unlike CUDA, where you must copy ingredients (tensors) from the Chef's table to the Sous-Chef's table, the Metal backend simply hands the GPU a pointer to the existing data. NEF2 uses Metal-cpp to trigger GPU computation directly on this shared data.</p>
+                </section>
+
+                <div class="divider"></div>
+
+                <h2>Usage</h2>
+                <div class="code-block">
+                    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn">Copy</button></div>
+                    <div class="code-content"><pre><span class="kw">import</span> nef2
+<span class="cmt"># Automatically detected on macOS</span>
+runtime = nef2.<span class="fn">Runtime</span>(device=<span class="str">"metal"</span>)</pre></div>
+                </div>
+
+                <div class="divider"></div>
+
+                <h3>Common Mistakes</h3>
+                <ul>
+                    <li><strong>Forcing Copies:</strong> Explicitly moving a tensor to the GPU (e.g., <code>tensor.to("metal")</code>) when it's already in unified memory. In NEF2 on macOS, CPU and GPU memory are the same physical chips; explicit copies just waste time.</li>
+                    <li><strong>Cross-Platform Code:</strong> Hardcoding <code>device="metal"</code> in scripts meant to be shared with Linux users. Always use <code>device="auto"</code> for portable code.</li>
+                </ul>
+
+                <p><strong>Key takeaway:</strong> The Metal backend exploits Apple's Unified Memory to achieve zero-copy GPU acceleration on macOS devices.</p>
+            `,
+            format: `
+                <div class="breadcrumb">Docs <span>/</span> Core Concepts <span>/</span> Format Spec</div>
+                <h1>NEF2 Binary Format (.nef2)</h1>
+                
+                <section>
+                    <h3>What is it?</h3>
+                    <p>The <code>.nef2</code> format is a custom file type used to save and load trained neural network weights. It consists of a strict binary header, a metadata dictionary, and a flat block of raw memory containing the tensor data.</p>
+                </section>
+
+                <section>
+                    <h3>Why does it exist?</h3>
+                    <p>Loading models from common formats like PyTorch's <code>.pt</code> (Pickle) or <code>safetensors</code> requires complex parsing, memory allocation, and CPU deserialization. The <code>.nef2</code> format is designed for <strong>Zero-Copy Loading</strong>. The operating system can simply map the file directly into memory (mmap) and the GPU can read from it instantly without the CPU ever touching the data.</p>
+                </section>
+
+                <section>
+                    <h3>How does it work?</h3>
+                    <p>Imagine reading a book. A normal format requires you to copy every sentence from the book onto a new sheet of paper before you can read it (Deserialization). The <code>.nef2</code> format is like putting the open book directly on your desk. The file starts with a magic word (<code>NEF2</code>) to prove it's a valid file, followed by an index of exactly where every chapter (tensor) starts, and then the raw text of the chapters themselves.</p>
+                </section>
+
+                <div class="divider"></div>
+
+                <h2>Structure Example</h2>
+                <div class="code-block">
+                    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn">Copy</button></div>
+                    <div class="code-content"><pre><span class="kw">import</span> nef2
+<span class="kw">from</span> nef2.serialization <span class="kw">import</span> save_model
+
+<span class="cmt"># Saves to binary format:</span>
+<span class="cmt"># [Magic Header 'NEF2'] [Version 1] [Num Params]</span>
+<span class="cmt"># [Param 1 Name] [Param 1 Shape] [Param 1 Raw Bytes] ...</span>
+save_model(my_model, <span class="str">"model.nef2"</span>)</pre></div>
+                </div>
+
+                <div class="divider"></div>
+
+                <h3>Common Mistakes</h3>
+                <ul>
+                    <li><strong>Manual Editing:</strong> Trying to open a <code>.nef2</code> file in a text editor to view metadata. The file is strictly binary. Use the CLI tool (<code>nef2 inspect model.nef2</code>) instead.</li>
+                    <li><strong>Shape Mismatches:</strong> Attempting to load a <code>.nef2</code> file into a Python model definition that has different layer sizes. The loader expects an exact 1:1 mapping of parameter names and shapes.</li>
+                </ul>
+
+                <p><strong>Key takeaway:</strong> The <code>.nef2</code> format prioritizes ultra-fast, memory-mapped loading over human readability by storing weights exactly as the hardware expects to see them.</p>
+            `,
+            'python-api': `
+                <div class="breadcrumb">Docs <span>/</span> API Reference <span>/</span> Python API</div>
+                <h1>Python Module API</h1>
+                
+                <section>
+                    <h3>What is it?</h3>
+                    <p>The Python API is the primary way developers build and interact with neural networks in NEF2. The core of this API is the <code>nef2.Module</code> class and its unique Pipeline Engine (the <code>&gt;&gt;</code> operator).</p>
+                </section>
+
+                <section>
+                    <h3>Why does it exist?</h3>
+                    <p>Writing raw math operations for a 100-layer network is unmanageable. The <code>Module</code> API provides object-oriented building blocks (like <code>Linear</code> or <code>LayerNorm</code>) that automatically track their own parameters (weights) and gradients for training.</p>
+                </section>
+
+                <section>
+                    <h3>How does it work?</h3>
+                    <p>A <code>Module</code> is like a lego block. It holds data (Parameters) and logic (a <code>forward()</code> function). When you pass data through a module, it applies its logic to the data. NEF2 introduces a unique feature: <strong>Pipelining</strong>. Instead of writing complex wrapper classes to connect multiple models together, you can literally "pipe" the output of one model directly into another using the <code>&gt;&gt;</code> symbol.</p>
+                </section>
+
+                <div class="divider"></div>
+
+                <h2>Pipeline Chaining</h2>
+                <p>The <code>&gt;&gt;</code> operator creates a seamless <code>Pipeline</code> object.</p>
+                <div class="code-block">
+                    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn">Copy</button></div>
+                    <div class="code-content"><pre><span class="kw">import</span> nef2
+<span class="kw">from</span> nef2.nn <span class="kw">import</span> Module, Linear, ReLU
+
+<span class="kw">class</span> SimpleModel(Module):
+    <span class="kw">def</span> __init__(self):
+        self.layer1 = Linear(128, 256)
+        self.relu = ReLU()
+        self.layer2 = Linear(256, 10)
+
+    <span class="kw">def</span> forward(self, x):
+        <span class="cmt"># Using the Pipeline Engine (>>) to chain execution</span>
+        <span class="kw">return</span> self.layer1(x) >> self.relu >> self.layer2</pre></div>
+                </div>
+
+                <div class="divider"></div>
+
+                <h3>Common Mistakes</h3>
+                <ul>
+                    <li><strong>Forgetting <code>Parameter()</code>:</strong> Storing weights in a simple list (<code>self.w = [1, 2]</code>) instead of a <code>nef2.Parameter</code>. If it's not a Parameter, the <code>Module</code> cannot find it during training and the weights won't update.</li>
+                    <li><strong>Direct Call instead of Forward:</strong> It is standard to call the instance directly (<code>my_model(data)</code>) rather than explicitly calling <code>my_model.forward(data)</code>, as the direct call triggers behind-the-scenes framework hooks.</li>
+                </ul>
+
+                <p><strong>Key takeaway:</strong> The NEF2 Python API uses <code>Module</code> classes for state management and the expressive <code>&gt;&gt;</code> operator for effortlessly chaining complex model architectures.</p>
             `,
             community: `
                 <div class="breadcrumb">Docs <span>/</span> API Reference <span>/</span> Community</div>
@@ -658,10 +1031,10 @@ output = model.<span class="fn">forward</span>(tokens)
             try {
                 const response = await fetch(`https://api.github.com/repos/Hexa08/NEF2`);
                 const data = await response.json();
-                const stars = data.stargazers_count || 1242;
+                const stars = data.stargazers_count || 0;
                 countEl.innerText = stars >= 1000 ? (stars/1000).toFixed(1) + 'k' : stars;
             } catch (e) {
-                countEl.innerText = '1.2k';
+                countEl.innerText = '0';
             }
         }
 
